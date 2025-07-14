@@ -1,6 +1,7 @@
 package com.muscledia.Gamification_service.repository;
 
 import com.muscledia.Gamification_service.model.Champion;
+import com.muscledia.Gamification_service.model.enums.ChampionCriteriaType;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -27,6 +28,11 @@ public interface ChampionRepository extends MongoRepository<Champion, String> {
     List<Champion> findByMuscleGroupId(String muscleGroupId);
 
     /**
+     * Find champions by criteria type
+     */
+    List<Champion> findByCriteriaType(ChampionCriteriaType criteriaType);
+
+    /**
      * Find champions by difficulty level
      */
     List<Champion> findByBaseDifficulty(int difficulty);
@@ -47,16 +53,35 @@ public interface ChampionRepository extends MongoRepository<Champion, String> {
     List<Champion> findByBaseDifficultyBetween(int minDifficulty, int maxDifficulty);
 
     /**
-     * Find champions containing specific criteria key
+     * Find champions by criteria type and difficulty
      */
-    @Query("{ 'criteria.?0' : { $exists: true } }")
-    List<Champion> findByCriteriaKey(String criteriaKey);
+    List<Champion> findByCriteriaTypeAndBaseDifficultyLessThanEqual(ChampionCriteriaType criteriaType,
+            int maxDifficulty);
 
     /**
-     * Find champions with specific criteria value
+     * Find champions containing specific criteria parameter key
      */
-    @Query("{ 'criteria.?0' : ?1 }")
-    List<Champion> findByCriteriaKeyAndValue(String criteriaKey, Object criteriaValue);
+    @Query("{ 'criteriaParams.?0' : { $exists: true } }")
+    List<Champion> findByCriteriaParamKey(String paramKey);
+
+    /**
+     * Find champions with specific criteria parameter value
+     */
+    @Query("{ 'criteriaParams.?0' : ?1 }")
+    List<Champion> findByCriteriaParamKeyAndValue(String paramKey, Object paramValue);
+
+    /**
+     * Find champions by criteria type with specific parameter
+     */
+    @Query("{ 'criteriaType' : ?0, 'criteriaParams.?1' : { $exists: true } }")
+    List<Champion> findByCriteriaTypeAndParamKey(ChampionCriteriaType criteriaType, String paramKey);
+
+    /**
+     * Find champions by criteria type with specific parameter value
+     */
+    @Query("{ 'criteriaType' : ?0, 'criteriaParams.?1' : ?2 }")
+    List<Champion> findByCriteriaTypeAndParamValue(ChampionCriteriaType criteriaType, String paramKey,
+            Object paramValue);
 
     /**
      * Find champions ordered by difficulty (easiest first)
@@ -99,4 +124,10 @@ public interface ChampionRepository extends MongoRepository<Champion, String> {
      */
     @Query("{ 'requiredExerciseId' : { $exists: true, $ne: null } }")
     List<Champion> findExerciseSpecificChampions();
+
+    /**
+     * Get all criteria types currently in use
+     */
+    @Query(value = "{}", fields = "{ 'criteriaType' : 1 }")
+    List<Champion> findAllCriteriaTypes();
 }
