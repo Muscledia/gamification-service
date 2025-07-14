@@ -1,6 +1,7 @@
 package com.muscledia.Gamification_service.model;
 
 import com.muscledia.Gamification_service.model.enums.BadgeType;
+import com.muscledia.Gamification_service.model.enums.BadgeCriteriaType;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -26,9 +27,12 @@ public class Badge {
 
     private int pointsAwarded;
 
-    // Flexible criteria for earning the badge (e.g., {"type": "WORKOUT_COUNT",
-    // "targetValue": 5, "period": "WEEKLY"})
-    private Map<String, Object> criteria;
+    // Type of criteria for earning the badge (provides type safety and validation)
+    private BadgeCriteriaType criteriaType;
+
+    // Flexible criteria parameters for earning the badge
+    // (e.g., {"targetValue": 5, "period": "WEEKLY", "exerciseId": "123"})
+    private Map<String, Object> criteriaParams;
 
     private Instant createdAt;
 }
