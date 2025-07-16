@@ -25,6 +25,7 @@ public class UserGamificationProfile {
 
     private List<UserBadge> earnedBadges = new ArrayList<>();
 
+    private List<UserQuestProgress> quests = new ArrayList<>();
 
     @Data
     public static class StreakData {
