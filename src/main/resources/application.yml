@@ -20,6 +20,12 @@ management:
       exposure:
         include: health
 
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:1e5bf199c6450231fdd242f60485d0caadc32aa27a0d89da7174aed38326a879} # Should be at least 32 characters
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+  issuer: ${JWT_ISSUER:muscledia-user-service}
+
 # SpringDoc OpenAPI Configuration
 springdoc:
   api-docs:
