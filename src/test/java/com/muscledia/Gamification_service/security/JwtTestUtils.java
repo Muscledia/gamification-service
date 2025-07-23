@@ -4,105 +4,154 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
 /**
- * Utility class for generating JWT tokens for testing purposes
+ * Utility class for generating JWT tokens in tests.
+ * Provides methods to create valid, expired, and role-specific tokens.
  */
 public class JwtTestUtils {
 
-    private static final String TEST_SECRET = "mySecretKey12345678901234567890123456789012";
-    private static final String ISSUER = "muscledia-user-service";
-    private static final long EXPIRATION_TIME = 86400000; // 24 hours
+    private static final String TEST_SECRET = "testSecretKey123456789012345678901234567890";
+    private static final String TEST_ISSUER = "muscledia-user-service-test";
+    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
 
     /**
-     * Generate a test JWT token for a user
+     * Generates a valid JWT token for a user with USER role.
      */
-    public static String generateTestToken(Long userId, String username, String email, List<String> roles) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
+    public static String generateUserToken(Long userId, String username) {
+        return generateToken(userId, username, "user@example.com", List.of("USER"), 24);
+    }
 
-        SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
+    /**
+     * Generates a valid JWT token for an admin with ADMIN and USER roles.
+     */
+    public static String generateAdminToken(Long userId, String username) {
+        return generateToken(userId, username, "admin@example.com", List.of("ADMIN", "USER"), 24);
+    }
+
+    /**
+     * Generates an expired JWT token for testing expired token scenarios.
+     */
+    public static String generateExpiredToken(Long userId, String username) {
+        return generateToken(userId, username, "expired@example.com", List.of("USER"), -1);
+    }
+
+    /**
+     * Generates a JWT token with custom roles.
+     */
+    public static String generateTokenWithRoles(Long userId, String username, List<String> roles) {
+        return generateToken(userId, username, "custom@example.com", roles, 24);
+    }
+
+    /**
+     * Generates a JWT token with custom expiration hours.
+     */
+    public static String generateTokenWithExpiration(Long userId, String username, int expirationHours) {
+        return generateToken(userId, username, "user@example.com", List.of("USER"), expirationHours);
+    }
+
+    /**
+     * Core method to generate JWT tokens with all customizable parameters.
+     */
+    private static String generateToken(Long userId, String username, String email,
+            List<String> roles, int expirationHours) {
+        Instant now = Instant.now();
+        Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
 
         return Jwts.builder()
-                .subject(username)
+                .setSubject(username)
                 .claim("userId", userId)
                 .claim("username", username)
                 .claim("email", email)
                 .claim("roles", roles)
-                .issuer(ISSUER)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(key)
+                .setIssuer(TEST_ISSUER)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiration))
+                .signWith(SECRET_KEY)
                 .compact();
     }
 
     /**
-     * Generate a test token for a regular user
+     * Generates a token with invalid signature for security testing.
      */
-    public static String generateUserToken(Long userId, String username) {
-        return generateTestToken(userId, username, username + "@example.com", List.of("USER"));
-    }
-
-    /**
-     * Generate a test token for an admin user
-     */
-    public static String generateAdminToken(Long userId, String username) {
-        return generateTestToken(userId, username, username + "@example.com", List.of("USER", "ADMIN"));
-    }
-
-    /**
-     * Generate an expired test token
-     */
-    public static String generateExpiredToken(Long userId, String username) {
-        Date now = new Date();
-        Date expiredDate = new Date(now.getTime() - 3600000); // 1 hour ago
-
-        SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes());
+    public static String generateInvalidSignatureToken(Long userId, String username) {
+        SecretKey wrongKey = Keys.hmacShaKeyFor("wrongSecretKey12345678901234567890123".getBytes());
+        Instant now = Instant.now();
+        Instant expiration = now.plus(24, ChronoUnit.HOURS);
 
         return Jwts.builder()
-                .subject(username)
+                .setSubject(username)
                 .claim("userId", userId)
                 .claim("username", username)
-                .claim("email", username + "@example.com")
+                .claim("email", "test@example.com")
                 .claim("roles", List.of("USER"))
-                .issuer(ISSUER)
-                .issuedAt(new Date(expiredDate.getTime() - 86400000)) // issued 24 hours before expiry
-                .expiration(expiredDate)
-                .signWith(key)
+                .setIssuer(TEST_ISSUER)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiration))
+                .signWith(wrongKey) // Wrong signature
                 .compact();
     }
 
     /**
-     * Print sample tokens for manual testing
+     * Generates a token with missing required claims for testing validation.
      */
-    public static void main(String[] args) {
-        System.out.println("=== JWT Test Tokens ===\n");
+    public static String generateIncompleteToken(String username) {
+        Instant now = Instant.now();
+        Instant expiration = now.plus(24, ChronoUnit.HOURS);
 
-        // Regular user token
-        String userToken = generateUserToken(123L, "testuser");
-        System.out.println("Regular User Token (ID: 123, Username: testuser):");
-        System.out.println("Bearer " + userToken);
-        System.out.println();
+        return Jwts.builder()
+                .setSubject(username)
+                // Missing userId claim intentionally
+                .claim("username", username)
+                .setIssuer(TEST_ISSUER)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiration))
+                .signWith(SECRET_KEY)
+                .compact();
+    }
 
-        // Admin user token
-        String adminToken = generateAdminToken(456L, "admin");
-        System.out.println("Admin User Token (ID: 456, Username: admin):");
-        System.out.println("Bearer " + adminToken);
-        System.out.println();
+    /**
+     * Generates a token with wrong issuer for testing issuer validation.
+     */
+    public static String generateWrongIssuerToken(Long userId, String username) {
+        Instant now = Instant.now();
+        Instant expiration = now.plus(24, ChronoUnit.HOURS);
 
-        // Another user token for testing access control
-        String user2Token = generateUserToken(789L, "user2");
-        System.out.println("Another User Token (ID: 789, Username: user2):");
-        System.out.println("Bearer " + user2Token);
-        System.out.println();
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("userId", userId)
+                .claim("username", username)
+                .claim("email", "test@example.com")
+                .claim("roles", List.of("USER"))
+                .setIssuer("wrong-issuer") // Wrong issuer
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiration))
+                .signWith(SECRET_KEY)
+                .compact();
+    }
 
-        System.out.println("=== Usage Instructions ===");
-        System.out.println("1. Copy one of the 'Bearer ...' tokens above");
-        System.out.println("2. In Swagger UI or API client, add Authorization header:");
-        System.out.println("   Authorization: Bearer <token>");
-        System.out.println("3. Test different endpoints with different user tokens");
-        System.out.println("4. Verify access control works correctly");
+    /**
+     * Creates a Bearer token string ready for Authorization header.
+     */
+    public static String toBearerToken(String token) {
+        return "Bearer " + token;
+    }
+
+    /**
+     * Utility method to get the test secret key for other test configurations.
+     */
+    public static String getTestSecret() {
+        return TEST_SECRET;
+    }
+
+    /**
+     * Utility method to get the test issuer for other test configurations.
+     */
+    public static String getTestIssuer() {
+        return TEST_ISSUER;
     }
 }
