@@ -1,42 +1,131 @@
+# =======================================================
+# MUSCLEDIA GAMIFICATION SERVICE - SMART CONFIGURATION
+# =======================================================
+# One config file that works for MVP AND production
+# Override with environment variables as needed
+
 server:
-  port: 8083
+  port: ${PORT:8083}
 
 spring:
   application:
     name: Gamification-service
+
+  # Database - Required
   data:
     mongodb:
-      uri: mongodb+srv://mongo:NSX2O96ElPhiLPMk@cluster0.dcypj6u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-      database: gamification_db
+      uri: ${MONGODB_URI:mongodb+srv://mongo:NSX2O96ElPhiLPMk@cluster0.dcypj6u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&connectTimeoutMS=20000&socketTimeoutMS=20000&maxIdleTimeMS=120000&maxLifeTimeMS=120000}
+      database: ${MONGODB_DATABASE:gamification_db}
+      # Additional settings for reliability
+      auto-index-creation: true
 
+    # Redis - Optional (MVP: disabled, Production: enable with env vars)
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  # Caching - Smart defaults
+  cache:
+    type: ${CACHE_TYPE:simple} # MVP: "simple", Production: "redis"
+
+  # Kafka - Optional for events (MVP: can disable with env var)
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: ${KAFKA_GROUP:gamification-service}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+
+# Security
+jwt:
+  secret: ${JWT_SECRET:1e5bf199c6450231fdd242f60485d0caadc32aa27a0d89da7174aed38326a879}
+  expiration: ${JWT_EXPIRATION:86400000}
+  issuer: ${JWT_ISSUER:muscledia-user-service}
+
+# Gamification Settings - MVP defaults, production configurable
+gamification:
+  # Cost optimization (MVP: all disabled for $0 cost)
+  cost-optimization:
+    redis-enabled: ${REDIS_ENABLED:false} # MVP: false, Prod: true
+    cache-mode: ${CACHE_MODE:memory-only}
+    max-cache-size: ${MAX_CACHE_SIZE:1000}
+
+  # Features (MVP: minimal, Production: enable with env vars)
+  events:
+    processing:
+      enabled: ${EVENTS_ENABLED:false} # MVP: false, Prod: true
+      batch-size: ${EVENT_BATCH_SIZE:50}
+
+  scheduling:
+    enabled: ${SCHEDULING_ENABLED:false} # MVP: false, Prod: true
+    quest-generation:
+      cron: ${QUEST_CRON:0 0 6 * * ?} # 6 AM daily
+    leaderboard-refresh:
+      cron: ${LEADERBOARD_CRON:0 */30 * * * ?} # Every 30 minutes
+
+  # Cache TTLs
+  cache:
+    leaderboard-ttl: ${LEADERBOARD_TTL:600000} # 10 minutes
+    user-stats-ttl: ${USER_STATS_TTL:300000} # 5 minutes
+
+# Service Discovery - Optional
 eureka:
   client:
+    enabled: ${EUREKA_ENABLED:false} # MVP: false, Prod: true
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
 
+# Monitoring
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: ${ACTUATOR_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      show-details: when-authorized
 
-# JWT Configuration
-jwt:
-  secret: ${JWT_SECRET:1e5bf199c6450231fdd242f60485d0caadc32aa27a0d89da7174aed38326a879} # Should be at least 32 characters
-  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
-  issuer: ${JWT_ISSUER:muscledia-user-service}
+# Logging
+logging:
+  level:
+    com.muscledia.Gamification_service: ${LOG_LEVEL:INFO}
+    org.springframework: WARN
+    kafka: ${KAFKA_LOG_LEVEL:OFF}
+    redis: ${REDIS_LOG_LEVEL:OFF}
 
-# SpringDoc OpenAPI Configuration
+# API Documentation - RE-ENABLED for MVP with fixed dependencies
 springdoc:
   api-docs:
+    enabled: ${API_DOCS_ENABLED:true} # Re-enabled for MVP
     path: /api-docs
-    enabled: true
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true} # Re-enabled for MVP
     path: /swagger-ui.html
-    enabled: true
     operations-sorter: method
     tags-sorter: alpha
-    try-it-out-enabled: true
-    disable-swagger-default-url: true
-    config-url: /api-docs/swagger-config
-    url: /api-docs
+# =======================================================
+# DEPLOYMENT PROFILES - Override with Environment Variables
+# =======================================================
+#
+# MVP DEPLOYMENT (Default - $0 infrastructure cost):
+# - No environment variables needed
+# - Uses MongoDB only
+# - In-memory caching
+# - No background jobs
+# - No Kafka events
+#
+# PRODUCTION DEPLOYMENT:
+# export REDIS_ENABLED=true
+# export CACHE_TYPE=redis
+# export EVENTS_ENABLED=true
+# export SCHEDULING_ENABLED=true
+# export EUREKA_ENABLED=true
+# export KAFKA_SERVERS=your-kafka-cluster:9092
+# export REDIS_HOST=your-redis-cluster
+#
+# =======================================================
