@@ -93,15 +93,15 @@ public class QuestController {
      * Start a quest for a user
      */
     @PostMapping("/{questId}/start/{userId}")
-    public ResponseEntity<ApiResponse<UserGamificationProfile>> startQuest(
+    public ResponseEntity<ApiResponse<UserQuestProgress>> startQuest(
             @PathVariable String questId,
             @PathVariable Long userId) {
 
         log.info("Starting quest {} for user {}", questId, userId);
 
         try {
-            UserGamificationProfile updatedProfile = questService.startQuest(userId, questId);
-            return ResponseEntity.ok(ApiResponse.success("Quest started successfully", updatedProfile));
+            UserQuestProgress questProgress = questService.startQuest(userId, questId);
+            return ResponseEntity.ok(ApiResponse.success("Quest started successfully", questProgress));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
@@ -116,16 +116,16 @@ public class QuestController {
      * Update quest progress for a user
      */
     @PutMapping("/{questId}/progress")
-    public ResponseEntity<ApiResponse<UserGamificationProfile>> updateQuestProgress(
+    public ResponseEntity<ApiResponse<UserQuestProgress>> updateQuestProgress(
             @PathVariable String questId,
             @Valid @RequestBody QuestProgressRequest request) {
 
         log.info("Updating quest progress for quest {} and user {}", questId, request.getUserId());
 
         try {
-            UserGamificationProfile updatedProfile = questService.updateQuestProgress(
+            UserQuestProgress questProgress = questService.updateQuestProgress(
                     request.getUserId(), questId, request.getProgressIncrement());
-            return ResponseEntity.ok(ApiResponse.success("Quest progress updated successfully", updatedProfile));
+            return ResponseEntity.ok(ApiResponse.success("Quest progress updated successfully", questProgress));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
