@@ -201,6 +201,22 @@ public class UserGamificationService {
     }
 
     /**
+     * Get leaderboard by points (simple)
+     */
+    public List<UserGamificationProfile> getTopUsersByPoints(int limit) {
+        log.info("Getting top {} users by points", limit);
+        return userProfileRepository.findAllByOrderByPointsDesc(PageRequest.of(0, limit));
+    }
+
+    /**
+     * Get leaderboard by level (simple)
+     */
+    public List<UserGamificationProfile> getTopUsersByLevel(int limit) {
+        log.info("Getting top {} users by level", limit);
+        return userProfileRepository.findAllByOrderByLevelDesc(PageRequest.of(0, limit));
+    }
+
+    /**
      * Get user's rank by points
      */
     public long getUserPointsRank(Long userId) {

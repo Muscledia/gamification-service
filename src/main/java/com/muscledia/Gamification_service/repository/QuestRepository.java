@@ -90,6 +90,12 @@ public interface QuestRepository extends MongoRepository<Quest, String> {
     List<Quest> findAllByOrderByCreatedAtDesc();
 
     /**
+     * Find quests created after a specific date (for analysis)
+     */
+    @Query("{ 'createdAt' : { $gte: ?0 } }")
+    List<Quest> findQuestsCreatedAfter(Instant date);
+
+    /**
      * Find daily/weekly quests for scheduling
      */
     @Query("{ 'questType' : { $in: ['DAILY', 'WEEKLY'] } }")
