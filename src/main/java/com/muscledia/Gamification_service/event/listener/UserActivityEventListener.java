@@ -4,6 +4,7 @@ import com.muscledia.Gamification_service.event.*;
 import com.muscledia.Gamification_service.event.handler.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -18,15 +19,15 @@ import java.util.Set;
 
 /**
  * Main event listener for processing user activity events.
- * Handles real-time gamification triggers from workout completions, PRs, etc.
  * 
- * Senior Engineering Note: This listener is the entry point for event-driven
- * gamification. It validates, routes, and processes events asynchronously
- * while maintaining idempotency and proper error handling.
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class UserActivityEventListener {
 
     private final Validator validator;

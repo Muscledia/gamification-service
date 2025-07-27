@@ -1,23 +1,30 @@
 package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.StreakUpdatedEvent;
+import com.muscledia.Gamification_service.model.Badge;
 import com.muscledia.Gamification_service.service.BadgeService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Handler for streak update events.
- * Processes streak milestones and triggers streak-based badges.
+ * 
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class StreakEventHandler {
 
     private final BadgeService badgeService;
@@ -84,9 +91,9 @@ public class StreakEventHandler {
 
             Map<String, Object> streakStats = buildStreakStats(event);
 
-            var eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), streakStats);
+            List<Badge> eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), streakStats);
 
-            for (var badge : eligibleBadges) {
+            for (Badge badge : eligibleBadges) {
                 try {
                     badgeService.awardBadge(event.getUserId(), badge.getBadgeId());
                     log.info("Awarded streak badge {} to user {}",

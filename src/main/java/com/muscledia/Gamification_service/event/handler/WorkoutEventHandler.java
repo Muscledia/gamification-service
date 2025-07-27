@@ -1,40 +1,43 @@
 package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
+import com.muscledia.Gamification_service.model.Badge;
 import com.muscledia.Gamification_service.service.BadgeService;
 import com.muscledia.Gamification_service.service.QuestService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
-import com.muscledia.Gamification_service.event.publisher.GamificationEventPublisher;
+import com.muscledia.Gamification_service.event.publisher.TransactionalEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Handler for workout completion events.
- * Processes workout data and triggers badge evaluation, quest progress, and
- * streak updates.
  * 
- * Senior Engineering Note: This handler transforms workout data into
- * gamification
- * triggers while maintaining transactional integrity and publishing downstream
- * events.
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * Uses TransactionalEventPublisher for atomic event publishing
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class WorkoutEventHandler {
 
     private final BadgeService badgeService;
     private final QuestService questService;
     private final UserGamificationService userGamificationService;
-    private final GamificationEventPublisher eventPublisher;
+    private final TransactionalEventPublisher eventPublisher;
 
     /**
      * Process workout completion event and trigger gamification elements
+     * All operations are transactional, including event publishing
      */
     @Transactional
     public void handleWorkoutCompleted(WorkoutCompletedEvent event) {
@@ -118,10 +121,10 @@ public class WorkoutEventHandler {
             Map<String, Object> userStats = buildUserStatsFromWorkout(event);
 
             // Get all eligible badges for this user
-            var eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), userStats);
+            List<Badge> eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), userStats);
 
             // Award each eligible badge
-            for (var badge : eligibleBadges) {
+            for (Badge badge : eligibleBadges) {
                 try {
                     badgeService.awardBadge(event.getUserId(), badge.getBadgeId());
                     log.info("Awarded badge {} to user {} from workout",

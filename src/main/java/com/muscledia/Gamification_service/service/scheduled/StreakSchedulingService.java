@@ -19,18 +19,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Scheduled service for streak management automation.
- * Handles daily streak calculations, streak resets, and streak-based
- * notifications.
+ * Service for automated streak calculations and leaderboard maintenance.
  * 
- * Senior Engineering Note: Processes streaks in batches to handle large user
- * bases
- * efficiently while maintaining accuracy and publishing relevant events.
+ * Runs daily streak calculations, manages streak milestones, and updates
+ * leaderboards efficiently while maintaining accuracy and publishing relevant
+ * events.
+ * 
+ * REQUIRES BOTH SCHEDULING AND EVENTS TO BE ENABLED
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(value = "gamification.scheduling.enabled", havingValue = "true") // This controls scheduling
 public class StreakSchedulingService {
 
     private final UserGamificationProfileRepository userProfileRepository;

@@ -1,13 +1,13 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
 
 /**
  * Event triggered when a user's streak is updated.
@@ -18,8 +18,7 @@ import jakarta.validation.constraints.NotNull;
  * and can cascade into other gamification rewards.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class StreakUpdatedEvent extends BaseEvent {
 
@@ -65,6 +64,13 @@ public class StreakUpdatedEvent extends BaseEvent {
      */
     private String triggeringEventId;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public StreakUpdatedEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "STREAK_UPDATED";
@@ -77,6 +83,13 @@ public class StreakUpdatedEvent extends BaseEvent {
                 && longestStreak != null && longestStreak >= 0
                 && streakAction != null && !streakAction.trim().isEmpty()
                 && isValidStreakAction();
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     private boolean isValidStreakAction() {

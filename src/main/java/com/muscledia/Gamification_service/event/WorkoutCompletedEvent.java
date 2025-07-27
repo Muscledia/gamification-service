@@ -1,9 +1,8 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -20,8 +19,7 @@ import java.util.Map;
  * calculations.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class WorkoutCompletedEvent extends BaseEvent {
 
@@ -85,6 +83,13 @@ public class WorkoutCompletedEvent extends BaseEvent {
      */
     private Map<String, Object> metadata;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public WorkoutCompletedEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "WORKOUT_COMPLETED";
@@ -99,6 +104,13 @@ public class WorkoutCompletedEvent extends BaseEvent {
                 && workoutStartTime != null
                 && workoutEndTime != null
                 && workoutEndTime.isAfter(workoutStartTime);
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**
