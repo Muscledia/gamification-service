@@ -11,15 +11,20 @@ spring:
   application:
     name: Gamification-service
 
-  # Database - Required
+  # Disable Kafka auto-configuration for MVP (no Kafka server required)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration # <--- Keep this for MVP
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration # <--- Keep this for MVP
+
+    # Database - Temporarily disabled for testing
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb+srv://mongo:NSX2O96ElPhiLPMk@cluster0.dcypj6u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&connectTimeoutMS=20000&socketTimeoutMS=20000&maxIdleTimeMS=120000&maxLifeTimeMS=120000}
       database: ${MONGODB_DATABASE:gamification_db}
-      # Additional settings for reliability
       auto-index-creation: true
 
-    # Redis - Optional (MVP: disabled, Production: enable with env vars)
+   # Redis - Optional (MVP: disabled, Production: enable with env vars)
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
@@ -30,16 +35,26 @@ spring:
   cache:
     type: ${CACHE_TYPE:simple} # MVP: "simple", Production: "redis"
 
-  # Kafka - Optional for events (MVP: can disable with env var)
+  # Kafka - Optional for events (MVP: disabled, Production: enable with env var)
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Producer configuration for reliability and performance:
+      acks: all # Guarantees message delivery
+      retries: 3 # Number of retries for failed sends
+      batch-size: 16384 # Default batch size (16KB)
+      linger.ms: 5 # Time to wait before sending a batch
+      # Idempotent producer for exactly-once delivery (important for robustness)
+      properties:
+        enable.idempotence: true
     consumer:
       group-id: ${KAFKA_GROUP:gamification-service}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.json.trusted.packages: "com.muscledia.Gamification_service.event.*, com.muscledia.workout_service.event.*, com.muscledia.user_service.event.*" # IMPORTANT for JSON deserialization
 
 # Security
 jwt:
@@ -49,16 +64,20 @@ jwt:
 
 # Gamification Settings - MVP defaults, production configurable
 gamification:
+  # Database control
+  mongodb:
+    enabled: ${MONGODB_ENABLED:true} # MVP: false for testing, Prod: true
+
   # Cost optimization (MVP: all disabled for $0 cost)
   cost-optimization:
     redis-enabled: ${REDIS_ENABLED:false} # MVP: false, Prod: true
     cache-mode: ${CACHE_MODE:memory-only}
     max-cache-size: ${MAX_CACHE_SIZE:1000}
 
-  # Features (MVP: minimal, Production: enable with env vars)
+  # Features (MVP: events disabled for testing without MongoDB)
   events:
     processing:
-      enabled: ${EVENTS_ENABLED:false} # MVP: false, Prod: true
+      enabled: ${EVENTS_ENABLED:true} # Disabled for testing
       batch-size: ${EVENT_BATCH_SIZE:50}
 
   scheduling:
@@ -76,7 +95,7 @@ gamification:
 # Service Discovery - Optional
 eureka:
   client:
-    enabled: ${EUREKA_ENABLED:false} # MVP: false, Prod: true
+    enabled: ${EUREKA_ENABLED:true} # MVP: false, Prod: true
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
 
@@ -89,6 +108,9 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+  health:
+    redis:
+      enabled: ${REDIS_HEALTH_ENABLED:true}
 
 # Logging
 logging:
@@ -98,13 +120,13 @@ logging:
     kafka: ${KAFKA_LOG_LEVEL:OFF}
     redis: ${REDIS_LOG_LEVEL:OFF}
 
-# API Documentation - RE-ENABLED for MVP with fixed dependencies
+# API Documentation - Enabled for testing
 springdoc:
   api-docs:
-    enabled: ${API_DOCS_ENABLED:true} # Re-enabled for MVP
+    enabled: ${API_DOCS_ENABLED:true}
     path: /api-docs
   swagger-ui:
-    enabled: ${SWAGGER_ENABLED:true} # Re-enabled for MVP
+    enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha

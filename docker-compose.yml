@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0 # A stable version, adjust if needed
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181" # Expose Zookeeper client port
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:7.5.0 # Use same version prefix as Zookeeper for compatibility
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - zookeeper # Ensures Zookeeper starts before Kafka
+    ports:
+      - "9092:9092" # Port for your Spring Boot app to connect to (external)
+      # - "9093:9093" # Optional: Another listener if needed for other purposes
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181' # Connect to Zookeeper service by name
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9991 # Optional: For monitoring
+      KAFKA_JMX_HOSTNAME: localhost # Optional: For monitoring

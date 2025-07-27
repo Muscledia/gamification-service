@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -26,15 +27,13 @@ import java.util.Map;
 /**
  * Kafka configuration for event-driven gamification processing.
  * 
- * Senior Engineering Design Decisions:
- * 1. Separate topics for inbound/outbound events for clean separation
- * 2. JSON serialization with type information for schema evolution
- * 3. Error handling with dead letter queues and retry mechanisms
- * 4. Performance optimizations for high-throughput scenarios
- * 5. Consumer groups for horizontal scaling
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * For MVP: Disabled by default to prevent startup issues
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Configuration
 @EnableKafka
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
