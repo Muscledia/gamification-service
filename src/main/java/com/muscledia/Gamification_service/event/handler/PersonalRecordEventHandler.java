@@ -1,29 +1,37 @@
 package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.PersonalRecordEvent;
+import com.muscledia.Gamification_service.model.Badge;
 import com.muscledia.Gamification_service.service.BadgeService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
-import com.muscledia.Gamification_service.event.publisher.GamificationEventPublisher;
+import com.muscledia.Gamification_service.event.publisher.TransactionalEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Handler for personal record events.
- * Processes PR achievements and triggers high-value badge evaluations.
+ * 
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * Uses TransactionalEventPublisher for atomic event publishing
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class PersonalRecordEventHandler {
 
     private final BadgeService badgeService;
     private final UserGamificationService userGamificationService;
-    private final GamificationEventPublisher eventPublisher;
+    private final TransactionalEventPublisher eventPublisher;
 
     @Transactional
     public void handlePersonalRecord(PersonalRecordEvent event) {
@@ -72,9 +80,9 @@ public class PersonalRecordEventHandler {
         try {
             Map<String, Object> prStats = buildPersonalRecordStats(event);
 
-            var eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), prStats);
+            List<Badge> eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), prStats);
 
-            for (var badge : eligibleBadges) {
+            for (Badge badge : eligibleBadges) {
                 try {
                     badgeService.awardBadge(event.getUserId(), badge.getBadgeId());
                     log.info("Awarded PR badge {} to user {}",

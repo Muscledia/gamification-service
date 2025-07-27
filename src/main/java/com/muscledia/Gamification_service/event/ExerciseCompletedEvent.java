@@ -1,12 +1,12 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -19,8 +19,7 @@ import java.util.Map;
  * used for exercise-specific badges and detailed quest tracking.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class ExerciseCompletedEvent extends BaseEvent {
 
@@ -95,6 +94,13 @@ public class ExerciseCompletedEvent extends BaseEvent {
      */
     private Map<String, Object> metadata;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public ExerciseCompletedEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "EXERCISE_COMPLETED";
@@ -107,6 +113,13 @@ public class ExerciseCompletedEvent extends BaseEvent {
                 && workoutId != null && !workoutId.trim().isEmpty()
                 && setsCompleted != null && setsCompleted > 0
                 && totalReps != null && totalReps > 0;
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**

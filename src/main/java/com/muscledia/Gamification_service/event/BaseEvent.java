@@ -3,9 +3,8 @@ package com.muscledia.Gamification_service.event;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,13 +15,11 @@ import java.util.UUID;
  * Base class for all events in the gamification system.
  * Provides common fields and serialization configuration.
  * 
- * Design Decision: Using Jackson polymorphic type handling for clean JSON
- * serialization
- * and ensuring all events have consistent metadata (eventId, timestamp, etc.)
+ * Design Decision: Using @SuperBuilder for builder pattern inheritance
+ * while maintaining compatibility with abstract classes.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "eventType")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = WorkoutCompletedEvent.class, name = "WORKOUT_COMPLETED"),
@@ -40,6 +37,7 @@ public abstract class BaseEvent {
      * Unique identifier for this event instance
      */
     @NotBlank
+    @lombok.Builder.Default
     private String eventId = UUID.randomUUID().toString();
 
     /**
@@ -47,6 +45,7 @@ public abstract class BaseEvent {
      */
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+    @lombok.Builder.Default
     private Instant timestamp = Instant.now();
 
     /**
@@ -59,13 +58,36 @@ public abstract class BaseEvent {
      * Service that generated this event
      */
     @NotBlank
+    @lombok.Builder.Default
     private String source = "gamification-service";
 
     /**
      * Event version for schema evolution
      */
     @NotBlank
+    @lombok.Builder.Default
     private String version = "1.0";
+
+    /**
+     * Default constructor for Jackson
+     */
+    protected BaseEvent() {
+        this.eventId = UUID.randomUUID().toString();
+        this.timestamp = Instant.now();
+        this.source = "gamification-service";
+        this.version = "1.0";
+    }
+
+    /**
+     * Constructor with all fields
+     */
+    protected BaseEvent(String eventId, Instant timestamp, Long userId, String source, String version) {
+        this.eventId = eventId != null ? eventId : UUID.randomUUID().toString();
+        this.timestamp = timestamp != null ? timestamp : Instant.now();
+        this.userId = userId;
+        this.source = source != null ? source : "gamification-service";
+        this.version = version != null ? version : "1.0";
+    }
 
     /**
      * Get the event type for routing and processing
@@ -76,4 +98,9 @@ public abstract class BaseEvent {
      * Validate event-specific business rules
      */
     public abstract boolean isValid();
+
+    /**
+     * Create a copy of this event with updated timestamp (for retries)
+     */
+    public abstract BaseEvent withNewTimestamp();
 }

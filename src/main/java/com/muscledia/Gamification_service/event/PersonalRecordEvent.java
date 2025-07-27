@@ -1,9 +1,8 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -18,8 +17,7 @@ import java.time.Instant;
  * award substantial points and may unlock exclusive badges.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class PersonalRecordEvent extends BaseEvent {
 
@@ -75,6 +73,13 @@ public class PersonalRecordEvent extends BaseEvent {
     @NotNull
     private Instant achievedAt;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public PersonalRecordEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "PERSONAL_RECORD";
@@ -88,6 +93,13 @@ public class PersonalRecordEvent extends BaseEvent {
                 && unit != null && !unit.trim().isEmpty()
                 && workoutId != null && !workoutId.trim().isEmpty()
                 && achievedAt != null;
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**

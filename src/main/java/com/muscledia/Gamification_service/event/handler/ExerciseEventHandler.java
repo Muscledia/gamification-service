@@ -1,23 +1,30 @@
 package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.ExerciseCompletedEvent;
+import com.muscledia.Gamification_service.model.Badge;
 import com.muscledia.Gamification_service.service.BadgeService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Handler for exercise completion events.
- * Processes individual exercise data for exercise-specific quests and badges.
+ * 
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class ExerciseEventHandler {
 
     private final BadgeService badgeService;
@@ -68,9 +75,9 @@ public class ExerciseEventHandler {
         try {
             Map<String, Object> exerciseStats = buildExerciseStats(event);
 
-            var eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), exerciseStats);
+            List<Badge> eligibleBadges = badgeService.getEligibleBadges(event.getUserId(), exerciseStats);
 
-            for (var badge : eligibleBadges) {
+            for (Badge badge : eligibleBadges) {
                 try {
                     badgeService.awardBadge(event.getUserId(), badge.getBadgeId());
                     log.debug("Awarded exercise badge {} to user {}",
