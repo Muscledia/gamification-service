@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -16,6 +17,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class UserGamificationService {
 
     private final UserGamificationProfileRepository userProfileRepository;
@@ -198,6 +200,22 @@ public class UserGamificationService {
 
         Pageable pageable = PageRequest.of(0, limit);
         return userProfileRepository.findTopUsersByLongestStreak(streakType, pageable);
+    }
+
+    /**
+     * Get leaderboard by points (simple)
+     */
+    public List<UserGamificationProfile> getTopUsersByPoints(int limit) {
+        log.info("Getting top {} users by points", limit);
+        return userProfileRepository.findAllByOrderByPointsDesc(PageRequest.of(0, limit));
+    }
+
+    /**
+     * Get leaderboard by level (simple)
+     */
+    public List<UserGamificationProfile> getTopUsersByLevel(int limit) {
+        log.info("Getting top {} users by level", limit);
+        return userProfileRepository.findAllByOrderByLevelDesc(PageRequest.of(0, limit));
     }
 
     /**

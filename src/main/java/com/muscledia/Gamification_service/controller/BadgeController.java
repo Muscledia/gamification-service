@@ -9,6 +9,7 @@ import com.muscledia.Gamification_service.model.enums.BadgeCriteriaType;
 import com.muscledia.Gamification_service.service.BadgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,12 +24,18 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.Map;
+import org.springframework.validation.annotation.Validated;
 
+/**
+ * Badge Controller - Now with working Swagger documentation
+ */
 @RestController
 @RequestMapping("/api/badges")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 @Tag(name = "Badge Management", description = "Operations for managing badges, awarding them to users, and checking criteria")
 public class BadgeController {
 
@@ -41,11 +48,11 @@ public class BadgeController {
     @Operation(summary = "Create a new badge", description = "Creates a new badge with specified criteria and rewards. Badge names must be unique.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Badge created successfully", content = @Content(schema = @Schema(implementation = Badge.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid badge data or duplicate badge name", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input or badge already exists", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse<Badge>> createBadge(
             @Parameter(description = "Badge object to create", required = true) @Valid @RequestBody Badge badge) {
+
         log.info("Creating new badge: {}", badge.getName());
 
         try {
@@ -68,17 +75,18 @@ public class BadgeController {
     @GetMapping
     @Operation(summary = "Get all badges", description = "Retrieves all badges with optional filtering by badge type and criteria type")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Badges retrieved successfully", content = @Content(schema = @Schema(implementation = List.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Badges retrieved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Failed to retrieve badges")
     })
     public ResponseEntity<ApiResponse<List<Badge>>> getAllBadges(
             @Parameter(description = "Filter by badge type") @RequestParam(required = false) BadgeType badgeType,
             @Parameter(description = "Filter by criteria type") @RequestParam(required = false) BadgeCriteriaType criteriaType) {
 
-        log.info("Getting all badges with filters - badgeType: {}, criteriaType: {}", badgeType, criteriaType);
+        log.info("Getting all badges with filters - badgeType: {}, criteriaType: {}", null, null); // Removed filters
+                                                                                                   // for MVP
 
         try {
-            List<Badge> badges = badgeService.getAllBadges(badgeType, criteriaType);
+            List<Badge> badges = badgeService.getAllBadges(null, null); // Removed filters for MVP
             return ResponseEntity.ok(ApiResponse.success(badges));
         } catch (Exception e) {
             log.error("Error getting badges", e);

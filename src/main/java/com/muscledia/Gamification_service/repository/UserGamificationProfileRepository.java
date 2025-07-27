@@ -49,6 +49,11 @@ public interface UserGamificationProfileRepository extends MongoRepository<UserG
     List<UserGamificationProfile> findAllByOrderByPointsDesc(Pageable pageable);
 
     /**
+     * Get users ordered by user ID for batch processing
+     */
+    List<UserGamificationProfile> findAllByOrderByUserId(Pageable pageable);
+
+    /**
      * Get leaderboard by level (highest levels first)
      */
     List<UserGamificationProfile> findAllByOrderByLevelDesc(Pageable pageable);

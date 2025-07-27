@@ -2,7 +2,6 @@ package com.muscledia.Gamification_service.controller;
 
 import com.muscledia.Gamification_service.dto.request.StreakUpdateRequest;
 import com.muscledia.Gamification_service.dto.response.ApiResponse;
-import com.muscledia.Gamification_service.dto.response.LeaderboardResponse;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import com.muscledia.Gamification_service.utils.AuthenticationService;
@@ -13,26 +12,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import java.util.List;
 import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
+/**
+ * User Gamification Controller - Simplified for MVP
+ * Removed complex Swagger annotations to avoid dependency issues
+ */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/gamification")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
-@Tag(name = "User Gamification Management", description = "Operations for managing user gamification profiles, progress tracking, leaderboards, and analytics")
-@SecurityRequirement(name = "bearerAuth")
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class UserGamificationController {
 
     private final UserGamificationService userGamificationService;
@@ -41,14 +37,8 @@ public class UserGamificationController {
      * Create or get user gamification profile
      */
     @PostMapping("/{userId}/profile")
-    @Operation(summary = "Create or get user gamification profile", description = "Creates a new gamification profile or retrieves existing profile for the specified user. Users can only access their own profiles unless they have admin role.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User profile retrieved/created successfully", content = @Content(schema = @Schema(implementation = UserGamificationProfile.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Access denied - can only access own profile", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized - invalid or missing JWT token", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
-    })
     public ResponseEntity<ApiResponse<UserGamificationProfile>> createOrGetUserProfile(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Creating or getting profile for user {} - Requested by user {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -70,11 +60,11 @@ public class UserGamificationController {
      * Get user gamification profile
      */
     @GetMapping("/{userId}/profile")
-    @Operation(summary = "Get user gamification profile", description = "Retrieves the gamification profile for the specified user. Users can only access their own profiles unless they have admin role.")
     public ResponseEntity<ApiResponse<UserGamificationProfile>> getUserProfile(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
-        log.info("Getting profile for user {} - Requested by user {}", userId, AuthenticationService.getCurrentUserId());
+        log.info("Getting profile for user {} - Requested by user {}", userId,
+                AuthenticationService.getCurrentUserId());
 
         // Validate user access
         AuthenticationService.validateUserAccess(userId);
@@ -96,10 +86,9 @@ public class UserGamificationController {
      * Update user points
      */
     @PutMapping("/{userId}/points")
-    @Operation(summary = "Update user points", description = "Adds points to the specified user's gamification profile. Users can only update their own points unless they have admin role.")
     public ResponseEntity<ApiResponse<UserGamificationProfile>> updateUserPoints(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId,
-            @Parameter(description = "Points to add (must be positive)", required = true) @RequestParam @Min(value = 1, message = "Points to add must be positive") int pointsToAdd) {
+            @PathVariable Long userId,
+            @RequestParam @Min(value = 1, message = "Points to add must be positive") int pointsToAdd) {
 
         log.info("Updating points for user {} with {} points - Requested by user {}", userId, pointsToAdd,
                 AuthenticationService.getCurrentUserId());
@@ -124,13 +113,13 @@ public class UserGamificationController {
      * Update user streak
      */
     @PutMapping("/{userId}/streaks")
-    @Operation(summary = "Update user streak", description = "Updates the streak information for the specified user. Users can only update their own streaks unless they have admin role.")
     public ResponseEntity<ApiResponse<UserGamificationProfile>> updateUserStreak(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId,
-            @Parameter(description = "Streak update request", required = true) @Valid @RequestBody StreakUpdateRequest request) {
+            @PathVariable Long userId,
+            @Valid @RequestBody StreakUpdateRequest request) {
 
         log.info("Updating streak for user {} - type: {}, continues: {} - Requested by user {}",
-                userId, request.getStreakType(), request.getStreakContinues(), AuthenticationService.getCurrentUserId());
+                userId, request.getStreakType(), request.getStreakContinues(),
+                AuthenticationService.getCurrentUserId());
 
         // Validate user access
         AuthenticationService.validateUserAccess(userId);
@@ -153,10 +142,9 @@ public class UserGamificationController {
      * Get user current streak
      */
     @GetMapping("/{userId}/streaks/{streakType}/current")
-    @Operation(summary = "Get user current streak", description = "Retrieves the current streak count for the specified user and streak type. Users can only access their own streaks unless they have admin role.")
     public ResponseEntity<ApiResponse<Integer>> getUserCurrentStreak(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId,
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType) {
+            @PathVariable Long userId,
+            @PathVariable String streakType) {
 
         log.info("Getting current streak for user {} and type {} - Requested by user {}", userId, streakType,
                 AuthenticationService.getCurrentUserId());
@@ -178,10 +166,9 @@ public class UserGamificationController {
      * Get user longest streak
      */
     @GetMapping("/{userId}/streaks/{streakType}/longest")
-    @Operation(summary = "Get user longest streak", description = "Retrieves the longest streak count for the specified user and streak type. Users can only access their own streaks unless they have admin role.")
     public ResponseEntity<ApiResponse<Integer>> getUserLongestStreak(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId,
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType) {
+            @PathVariable Long userId,
+            @PathVariable String streakType) {
 
         log.info("Getting longest streak for user {} and type {} - Requested by user {}", userId, streakType,
                 AuthenticationService.getCurrentUserId());
@@ -203,9 +190,8 @@ public class UserGamificationController {
      * Get user points rank
      */
     @GetMapping("/{userId}/rank/points")
-    @Operation(summary = "Get user points rank", description = "Retrieves the user's rank based on their total points. Users can only access their own rank unless they have admin role.")
     public ResponseEntity<ApiResponse<Long>> getUserPointsRank(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Getting points rank for user {} - Requested by user {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -227,9 +213,8 @@ public class UserGamificationController {
      * Get user level rank
      */
     @GetMapping("/{userId}/rank/level")
-    @Operation(summary = "Get user level rank", description = "Retrieves the user's rank based on their current level. Users can only access their own rank unless they have admin role.")
     public ResponseEntity<ApiResponse<Long>> getUserLevelRank(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Getting level rank for user {} - Requested by user {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -251,9 +236,8 @@ public class UserGamificationController {
      * Get user achievements summary
      */
     @GetMapping("/{userId}/achievements")
-    @Operation(summary = "Get user achievements summary", description = "Retrieves a comprehensive summary of the user's achievements including badges, quests, and champions. Users can only access their own achievements unless they have admin role.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserAchievementsSummary(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Getting achievements summary for user {} - Requested by user {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -279,9 +263,8 @@ public class UserGamificationController {
      */
     @PutMapping("/{userId}/reset")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Reset user progress", description = "Resets all gamification progress for the specified user. This is an admin-only operation.")
     public ResponseEntity<ApiResponse<UserGamificationProfile>> resetUserProgress(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Resetting progress for user {} - Requested by admin {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -304,9 +287,8 @@ public class UserGamificationController {
      */
     @DeleteMapping("/{userId}/profile")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete user profile", description = "Permanently deletes the user's gamification profile and all associated data. This is an admin-only operation.")
     public ResponseEntity<ApiResponse<Void>> deleteUserProfile(
-            @Parameter(description = "User ID", required = true) @PathVariable Long userId) {
+            @PathVariable Long userId) {
 
         log.info("Deleting profile for user {} - Requested by admin {}", userId,
                 AuthenticationService.getCurrentUserId());
@@ -328,17 +310,15 @@ public class UserGamificationController {
      * Get points leaderboard - Public access for authenticated users
      */
     @GetMapping("/leaderboards/points")
-    @Operation(summary = "Get points leaderboard", description = "Retrieves the top users ranked by total points. Available to all authenticated users.")
-    public ResponseEntity<ApiResponse<LeaderboardResponse>> getPointsLeaderboard(
-            @Parameter(description = "Maximum number of users to return (1-100)", required = false) @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getPointsLeaderboard(
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
 
         log.info("Getting points leaderboard with limit {} - Requested by user {}", limit,
                 AuthenticationService.getCurrentUserId());
 
         try {
             List<UserGamificationProfile> users = userGamificationService.getPointsLeaderboard(limit);
-            LeaderboardResponse response = new LeaderboardResponse("points", null, limit, users.size(), users);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("Points leaderboard retrieved successfully", users));
         } catch (Exception e) {
             log.error("Error getting points leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -350,17 +330,15 @@ public class UserGamificationController {
      * Get level leaderboard - Public access for authenticated users
      */
     @GetMapping("/leaderboards/levels")
-    @Operation(summary = "Get level leaderboard", description = "Retrieves the top users ranked by their current level. Available to all authenticated users.")
-    public ResponseEntity<ApiResponse<LeaderboardResponse>> getLevelLeaderboard(
-            @Parameter(description = "Maximum number of users to return (1-100)", required = false) @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getLevelLeaderboard(
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
 
         log.info("Getting level leaderboard with limit {} - Requested by user {}", limit,
                 AuthenticationService.getCurrentUserId());
 
         try {
             List<UserGamificationProfile> users = userGamificationService.getLevelLeaderboard(limit);
-            LeaderboardResponse response = new LeaderboardResponse("levels", null, limit, users.size(), users);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("Level leaderboard retrieved successfully", users));
         } catch (Exception e) {
             log.error("Error getting level leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -372,19 +350,16 @@ public class UserGamificationController {
      * Get streak leaderboard - Public access for authenticated users
      */
     @GetMapping("/leaderboards/streaks/{streakType}")
-    @Operation(summary = "Get streak leaderboard", description = "Retrieves the top users ranked by their current streak for the specified type. Available to all authenticated users.")
-    public ResponseEntity<ApiResponse<LeaderboardResponse>> getStreakLeaderboard(
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType,
-            @Parameter(description = "Maximum number of users to return (1-100)", required = false) @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getStreakLeaderboard(
+            @PathVariable String streakType,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
 
         log.info("Getting streak leaderboard for type {} with limit {} - Requested by user {}", streakType, limit,
                 AuthenticationService.getCurrentUserId());
 
         try {
             List<UserGamificationProfile> users = userGamificationService.getStreakLeaderboard(streakType, limit);
-            LeaderboardResponse response = new LeaderboardResponse("current_streaks", streakType, limit, users.size(),
-                    users);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("Streak leaderboard retrieved successfully", users));
         } catch (Exception e) {
             log.error("Error getting streak leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -396,10 +371,9 @@ public class UserGamificationController {
      * Get longest streak leaderboard - Public access for authenticated users
      */
     @GetMapping("/leaderboards/streaks/{streakType}/longest")
-    @Operation(summary = "Get longest streak leaderboard", description = "Retrieves the top users ranked by their longest streak for the specified type. Available to all authenticated users.")
-    public ResponseEntity<ApiResponse<LeaderboardResponse>> getLongestStreakLeaderboard(
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType,
-            @Parameter(description = "Maximum number of users to return (1-100)", required = false) @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getLongestStreakLeaderboard(
+            @PathVariable String streakType,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
 
         log.info("Getting longest streak leaderboard for type {} with limit {} - Requested by user {}", streakType,
                 limit, AuthenticationService.getCurrentUserId());
@@ -407,9 +381,7 @@ public class UserGamificationController {
         try {
             List<UserGamificationProfile> users = userGamificationService.getLongestStreakLeaderboard(streakType,
                     limit);
-            LeaderboardResponse response = new LeaderboardResponse("longest_streaks", streakType, limit, users.size(),
-                    users);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("Longest streak leaderboard retrieved successfully", users));
         } catch (Exception e) {
             log.error("Error getting longest streak leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -421,9 +393,8 @@ public class UserGamificationController {
      * Get recent level ups - Accessible to all authenticated users
      */
     @GetMapping("/analytics/recent-levelups")
-    @Operation(summary = "Get recent level ups", description = "Retrieves users who have recently leveled up within the specified time frame. Available to all authenticated users.")
     public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getRecentLevelUps(
-            @Parameter(description = "Hours to look back (1-168)", required = false) @RequestParam(defaultValue = "24") @Min(1) @Max(168) int hoursBack) {
+            @RequestParam(defaultValue = "24") @Min(1) @Max(168) int hoursBack) {
 
         log.info("Getting recent level ups within {} hours - Requested by user {}", hoursBack,
                 AuthenticationService.getCurrentUserId());
@@ -442,9 +413,8 @@ public class UserGamificationController {
      * Get users with active streak - Accessible to all authenticated users
      */
     @GetMapping("/analytics/active-streaks/{streakType}")
-    @Operation(summary = "Get users with active streak", description = "Retrieves users who currently have an active streak of the specified type. Available to all authenticated users.")
     public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getUsersWithActiveStreak(
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType) {
+            @PathVariable String streakType) {
 
         log.info("Getting users with active streak of type {} - Requested by user {}", streakType,
                 AuthenticationService.getCurrentUserId());
@@ -463,10 +433,9 @@ public class UserGamificationController {
      * Get users with minimum streak - Accessible to all authenticated users
      */
     @GetMapping("/analytics/minimum-streaks/{streakType}")
-    @Operation(summary = "Get users with minimum streak", description = "Retrieves users who have achieved at least the specified minimum streak length. Available to all authenticated users.")
     public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getUsersWithMinimumStreak(
-            @Parameter(description = "Streak type", required = true) @PathVariable String streakType,
-            @Parameter(description = "Minimum streak length", required = true) @RequestParam @Min(1) int minLength) {
+            @PathVariable String streakType,
+            @RequestParam @Min(1) int minLength) {
 
         log.info("Getting users with minimum streak of {} for type {} - Requested by user {}", minLength, streakType,
                 AuthenticationService.getCurrentUserId());
@@ -487,7 +456,6 @@ public class UserGamificationController {
      */
     @GetMapping("/analytics/platform-stats")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get platform statistics", description = "Retrieves comprehensive platform statistics including user counts, average levels, and engagement metrics. This is an admin-only operation.")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPlatformStatistics() {
 
         log.info("Getting platform statistics - Requested by admin {}", AuthenticationService.getCurrentUserId());

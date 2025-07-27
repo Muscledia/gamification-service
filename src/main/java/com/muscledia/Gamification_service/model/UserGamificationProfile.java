@@ -13,7 +13,7 @@ import java.util.Map;
 @Document(collection = "user_gamification_profiles")
 public class UserGamificationProfile {
     @Id
-    private Long UserId;
+    private Long userId;
 
     private int points;
 

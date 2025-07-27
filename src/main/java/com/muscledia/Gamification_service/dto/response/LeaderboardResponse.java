@@ -1,20 +1,36 @@
 package com.muscledia.Gamification_service.dto.response;
 
-import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.List;
-
+/**
+ * Response DTO for leaderboard entries.
+ * Contains user ranking information and relevant stats.
+ */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class LeaderboardResponse {
 
-    private String leaderboardType;
-    private String streakType; // Only used for streak leaderboards
-    private int limit;
-    private int totalEntries;
-    private List<UserGamificationProfile> users;
+    private Long userId;
+    private Integer rank;
+    private Integer points;
+    private Integer level;
+    private Integer currentStreak;
+    private String username; // Optional, if available
+    private String displayName; // Optional, if available
+
+    // Additional leaderboard-specific fields
+    private Long totalWorkouts;
+    private Long totalBadges;
+    private Integer longestStreak;
+
+    public LeaderboardResponse() {
+    }
+
+    public LeaderboardResponse(Long userId, Integer rank, Integer points, Integer level) {
+        this.userId = userId;
+        this.rank = rank;
+        this.points = points;
+        this.level = level;
+    }
 }

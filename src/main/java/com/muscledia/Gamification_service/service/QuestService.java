@@ -10,6 +10,7 @@ import com.muscledia.Gamification_service.repository.QuestRepository;
 import com.muscledia.Gamification_service.repository.UserGamificationProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class QuestService {
 
     private final QuestRepository questRepository;
@@ -90,7 +92,7 @@ public class QuestService {
      * Start a quest for a user
      */
     @Transactional
-    public UserGamificationProfile startQuest(Long userId, String questId) {
+    public UserQuestProgress startQuest(Long userId, String questId) {
         log.info("Starting quest {} for user {}", questId, userId);
 
         UserGamificationProfile userProfile = userProfileRepository.findByUserId(userId)
@@ -100,43 +102,49 @@ public class QuestService {
                 .orElseThrow(() -> new IllegalArgumentException("Quest not found: " + questId));
 
         // Check if user meets level requirement
-        if (userProfile.getLevel() < quest.getRequiredLevel()) {
-            throw new IllegalArgumentException("User level " + userProfile.getLevel() +
-                    " insufficient for quest requiring level " + quest.getRequiredLevel());
+        if (quest.getRequiredLevel() > userProfile.getLevel()) {
+            throw new IllegalArgumentException(
+                    String.format("User level %d is below required level %d for quest %s",
+                            userProfile.getLevel(), quest.getRequiredLevel(), quest.getName()));
         }
 
-        // Check if quest is currently active
-        Instant now = Instant.now();
-        if (quest.getStartDate().isAfter(now) || quest.getEndDate().isBefore(now)) {
-            throw new IllegalArgumentException("Quest is not currently active");
+        List<UserQuestProgress> userQuests = userProfile.getQuests();
+        if (userQuests == null) {
+            userQuests = new ArrayList<>();
+            userProfile.setQuests(userQuests);
         }
 
         // Check if user already has this quest in progress
-        boolean questInProgress = userProfile.getQuests().stream()
-                .anyMatch(questProgress -> questProgress.getQuestId().equals(questId));
+        boolean questInProgress = userQuests.stream()
+                .anyMatch(questProgress -> questProgress.getQuestId().equals(questId) &&
+                        QuestStatus.IN_PROGRESS.equals(questProgress.getStatus()));
 
-        // Create quest progress
+        if (questInProgress) {
+            throw new IllegalArgumentException("Quest is already in progress for this user");
+        }
+
+        // Create new quest progress
         UserQuestProgress questProgress = new UserQuestProgress();
         questProgress.setQuestId(questId);
         questProgress.setObjectiveProgress(0);
         questProgress.setStatus(QuestStatus.IN_PROGRESS);
-        questProgress.setStartDate(now);
-        questProgress.setCreatedAt(now);
+        questProgress.setStartDate(Instant.now());
+        questProgress.setCreatedAt(Instant.now());
 
-        // Note: This would need to be added to UserGamificationProfile model
-        // For now, we'll just save the user profile
+        userQuests.add(questProgress);
+        userProfileRepository.save(userProfile);
 
-        UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
-        log.info("Quest {} started for user {}", questId, userId);
-        return savedProfile;
+        log.info("Successfully started quest {} for user {}", questId, userId);
+        return questProgress;
     }
 
     /**
      * Update quest progress for a user
      */
     @Transactional
-    public UserGamificationProfile updateQuestProgress(Long userId, String questId, int progressIncrement) {
-        log.info("Updating quest progress for user {} on quest {}: +{}", userId, questId, progressIncrement);
+    public UserQuestProgress updateQuestProgress(Long userId, String questId, int progressIncrement) {
+        log.info("Updating quest progress for user {} on quest {} with increment {}",
+                userId, questId, progressIncrement);
 
         UserGamificationProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User profile not found: " + userId));
@@ -144,21 +152,48 @@ public class QuestService {
         Quest quest = questRepository.findById(questId)
                 .orElseThrow(() -> new IllegalArgumentException("Quest not found: " + questId));
 
-        // Find user's quest progress (this would be implemented when quest progress is
-        // properly modeled)
-        // For now, we'll simulate the logic
+        List<UserQuestProgress> userQuests = userProfile.getQuests();
+        if (userQuests == null) {
+            userQuests = new ArrayList<>();
+            userProfile.setQuests(userQuests);
+        }
+
+        // Find existing quest progress or create new one
+        UserQuestProgress questProgress = userQuests.stream()
+                .filter(q -> questId.equals(q.getQuestId()))
+                .findFirst()
+                .orElse(null);
+
+        if (questProgress == null) {
+            // Create new quest progress
+            questProgress = new UserQuestProgress();
+            questProgress.setQuestId(questId);
+            questProgress.setObjectiveProgress(0);
+            questProgress.setStatus(QuestStatus.IN_PROGRESS);
+            questProgress.setStartDate(Instant.now());
+            questProgress.setCreatedAt(Instant.now());
+            userQuests.add(questProgress);
+        }
 
         // Update progress
-        int newProgress = progressIncrement; // This would be currentProgress + progressIncrement
+        int newProgress = questProgress.getObjectiveProgress() + progressIncrement;
+        questProgress.setObjectiveProgress(newProgress);
 
         // Check if quest is completed
         if (newProgress >= quest.getObjectiveTarget()) {
-            return completeQuest(userId, questId);
+            questProgress.setStatus(QuestStatus.COMPLETED);
+            questProgress.setCompletionDate(Instant.now());
+
+            // Award quest rewards
+            awardQuestRewards(userProfile, quest);
+
+            log.info("Quest {} completed by user {}", questId, userId);
         }
 
-        UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
-        log.info("Quest progress updated for user {} on quest {}", userId, questId);
-        return savedProfile;
+        // Save updated profile
+        userProfileRepository.save(userProfile);
+
+        return questProgress;
     }
 
     /**
@@ -203,15 +238,26 @@ public class QuestService {
      * Get user's quest progress
      */
     public List<UserQuestProgress> getUserQuestProgress(Long userId, QuestStatus status) {
-        log.info("Getting quest progress for user {}", userId);
+        log.info("Getting quest progress for user {} with status {}", userId, status);
 
         UserGamificationProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User profile not found: " + userId));
 
-        // This would be implemented when quest progress is properly modeled in
-        // UserGamificationProfile
-        // For now, return empty list
-        return new ArrayList<>();
+        List<UserQuestProgress> allQuests = userProfile.getQuests();
+
+        if (allQuests == null || allQuests.isEmpty()) {
+            log.debug("No quest progress found for user {}", userId);
+            return new ArrayList<>();
+        }
+
+        // Filter by status if provided
+        if (status != null) {
+            return allQuests.stream()
+                    .filter(quest -> status.equals(quest.getStatus()))
+                    .toList();
+        }
+
+        return new ArrayList<>(allQuests);
     }
 
     /**
@@ -321,13 +367,17 @@ public class QuestService {
      * Private helper methods
      */
     private Set<String> getUserCompletedQuestIds(UserGamificationProfile userProfile) {
-        // This would be implemented when quest progress is properly modeled
-        // For now, return empty set
-        return new HashSet<>();
+        if (userProfile.getQuests() == null) {
+            return new HashSet<>();
+        }
+
+        return userProfile.getQuests().stream()
+                .filter(quest -> QuestStatus.COMPLETED.equals(quest.getStatus()))
+                .map(UserQuestProgress::getQuestId)
+                .collect(Collectors.toSet());
     }
 
     private int calculateLevel(int points) {
-        // Simple level calculation - can be made more sophisticated
         if (points < 100)
             return 1;
         if (points < 300)
@@ -346,6 +396,31 @@ public class QuestService {
             return 8;
         if (points < 4500)
             return 9;
-        return 10 + (points - 4500) / 1000; // Level 10+ requires 1000 points each
+        if (points < 5500)
+            return 10;
+
+        // Beyond level 10, each level requires 1000 additional points
+        return 10 + ((points - 5500) / 1000);
+    }
+
+    /**
+     * Award quest completion rewards to user
+     */
+    private void awardQuestRewards(UserGamificationProfile userProfile, Quest quest) {
+        // Award points
+        int currentPoints = userProfile.getPoints();
+        userProfile.setPoints(currentPoints + quest.getPointsReward());
+
+        // Calculate new level
+        int newLevel = calculateLevel(userProfile.getPoints());
+        if (newLevel > userProfile.getLevel()) {
+            userProfile.setLevel(newLevel);
+            userProfile.setLastLevelUpDate(Instant.now());
+            log.info("User {} leveled up to {} from quest completion",
+                    userProfile.getUserId(), newLevel);
+        }
+
+        log.info("Awarded {} points to user {} for completing quest {}",
+                quest.getPointsReward(), userProfile.getUserId(), quest.getName());
     }
 }
