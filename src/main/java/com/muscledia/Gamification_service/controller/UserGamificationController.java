@@ -17,16 +17,18 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import java.util.List;
 import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 /**
  * User Gamification Controller - Simplified for MVP
  * Removed complex Swagger annotations to avoid dependency issues
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/gamification")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class UserGamificationController {
 
     private final UserGamificationService userGamificationService;

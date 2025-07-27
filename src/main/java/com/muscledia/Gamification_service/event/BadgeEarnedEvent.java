@@ -1,9 +1,10 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -15,12 +16,11 @@ import java.util.Map;
  * Event published when a user earns a badge.
  * This is an OUTBOUND event that notifies other services of achievements.
  * 
- * Senior Engineering Note: Other services can listen to this for notifications,
- * social feeds, achievement sharing, etc.
+ * Uses SuperBuilder pattern for immutable-like construction while
+ * maintaining compatibility with the abstract BaseEvent class.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class BadgeEarnedEvent extends BaseEvent {
 
@@ -96,6 +96,53 @@ public class BadgeEarnedEvent extends BaseEvent {
      */
     private Map<String, Object> achievementData;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public BadgeEarnedEvent() {
+        super();
+    }
+
+    /**
+     * JSON constructor for Jackson deserialization
+     */
+    @JsonCreator
+    public BadgeEarnedEvent(
+            @JsonProperty("eventId") String eventId,
+            @JsonProperty("timestamp") Instant timestamp,
+            @JsonProperty("userId") Long userId,
+            @JsonProperty("source") String source,
+            @JsonProperty("version") String version,
+            @JsonProperty("badgeId") String badgeId,
+            @JsonProperty("badgeName") String badgeName,
+            @JsonProperty("badgeType") String badgeType,
+            @JsonProperty("badgeDescription") String badgeDescription,
+            @JsonProperty("pointsAwarded") Integer pointsAwarded,
+            @JsonProperty("rarity") String rarity,
+            @JsonProperty("earnedAt") Instant earnedAt,
+            @JsonProperty("triggeringActivity") String triggeringActivity,
+            @JsonProperty("triggeringEventId") String triggeringEventId,
+            @JsonProperty("totalBadgeCount") Integer totalBadgeCount,
+            @JsonProperty("newUserLevel") Integer newUserLevel,
+            @JsonProperty("newTotalPoints") Integer newTotalPoints,
+            @JsonProperty("achievementData") Map<String, Object> achievementData) {
+
+        super(eventId, timestamp, userId, source, version);
+        this.badgeId = badgeId;
+        this.badgeName = badgeName;
+        this.badgeType = badgeType;
+        this.badgeDescription = badgeDescription;
+        this.pointsAwarded = pointsAwarded;
+        this.rarity = rarity;
+        this.earnedAt = earnedAt;
+        this.triggeringActivity = triggeringActivity;
+        this.triggeringEventId = triggeringEventId;
+        this.totalBadgeCount = totalBadgeCount;
+        this.newUserLevel = newUserLevel;
+        this.newTotalPoints = newTotalPoints;
+        this.achievementData = achievementData;
+    }
+
     @Override
     public String getEventType() {
         return "BADGE_EARNED";
@@ -110,6 +157,13 @@ public class BadgeEarnedEvent extends BaseEvent {
                 && earnedAt != null
                 && totalBadgeCount != null && totalBadgeCount >= 0
                 && newTotalPoints != null && newTotalPoints >= 0;
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**

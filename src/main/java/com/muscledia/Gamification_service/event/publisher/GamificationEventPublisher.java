@@ -3,6 +3,7 @@ package com.muscledia.Gamification_service.event.publisher;
 import com.muscledia.Gamification_service.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -10,16 +11,16 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Publisher for outbound gamification events.
- * Publishes achievement and progress events to Kafka for other services to
- * consume.
+ * Service for publishing gamification events to Kafka topics.
  * 
- * Senior Engineering Note: Uses async publishing with proper error handling
- * and dead letter queue support for failed deliveries.
+ * ONLY ENABLED WHEN EVENTS ARE ENABLED
+ * For MVP: Disabled by default (no Kafka required)
+ * For Production: Enable with EVENTS_ENABLED=true
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class GamificationEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;

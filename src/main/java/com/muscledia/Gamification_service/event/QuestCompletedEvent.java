@@ -1,9 +1,8 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -16,8 +15,7 @@ import java.time.Duration;
  * This is an OUTBOUND event for quest completion notifications.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class QuestCompletedEvent extends BaseEvent {
 
@@ -44,6 +42,13 @@ public class QuestCompletedEvent extends BaseEvent {
 
     private String difficulty;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public QuestCompletedEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "QUEST_COMPLETED";
@@ -58,6 +63,13 @@ public class QuestCompletedEvent extends BaseEvent {
                 && completedAt != null
                 && questStartedAt != null
                 && completedAt.isAfter(questStartedAt);
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     public Duration getCompletionTime() {

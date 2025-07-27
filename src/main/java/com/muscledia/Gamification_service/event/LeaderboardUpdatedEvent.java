@@ -1,12 +1,12 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -14,8 +14,7 @@ import java.util.Map;
  * This is an OUTBOUND event for leaderboard notifications.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class LeaderboardUpdatedEvent extends BaseEvent {
 
@@ -34,6 +33,13 @@ public class LeaderboardUpdatedEvent extends BaseEvent {
 
     private Map<String, Object> leaderboardContext;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public LeaderboardUpdatedEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "LEADERBOARD_UPDATED";
@@ -45,6 +51,13 @@ public class LeaderboardUpdatedEvent extends BaseEvent {
                 && newRank != null && newRank >= 1
                 && currentValue != null && currentValue >= 0
                 && changeType != null && !changeType.trim().isEmpty();
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     public boolean isSignificantChange() {

@@ -9,6 +9,7 @@ import com.muscledia.Gamification_service.model.enums.BadgeCriteriaType;
 import com.muscledia.Gamification_service.service.BadgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.Map;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Badge Controller - Now with working Swagger documentation
@@ -31,7 +33,9 @@ import java.util.Map;
 @RequestMapping("/api/badges")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 @Tag(name = "Badge Management", description = "Operations for managing badges, awarding them to users, and checking criteria")
 public class BadgeController {
 

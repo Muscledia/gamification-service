@@ -1,9 +1,8 @@
 package com.muscledia.Gamification_service.event;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -19,8 +18,7 @@ import java.util.Map;
  * new quests, badges, or features in other services.
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class LevelUpEvent extends BaseEvent {
 
@@ -77,6 +75,13 @@ public class LevelUpEvent extends BaseEvent {
      */
     private Long daysSinceLastLevelUp;
 
+    /**
+     * Default constructor for Jackson and Lombok
+     */
+    public LevelUpEvent() {
+        super();
+    }
+
     @Override
     public String getEventType() {
         return "LEVEL_UP";
@@ -89,6 +94,13 @@ public class LevelUpEvent extends BaseEvent {
                 && newLevel > previousLevel
                 && totalPoints != null && totalPoints >= 0
                 && levelUpAt != null;
+    }
+
+    @Override
+    public BaseEvent withNewTimestamp() {
+        return this.toBuilder()
+                .timestamp(Instant.now())
+                .build();
     }
 
     /**

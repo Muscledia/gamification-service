@@ -24,7 +24,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.cost-optimization.redis-enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class MVPGamificationIntegrationService {
 
     private final UserGamificationService userGamificationService;

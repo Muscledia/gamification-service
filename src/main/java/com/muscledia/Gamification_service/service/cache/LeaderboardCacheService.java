@@ -5,6 +5,7 @@ import com.muscledia.Gamification_service.repository.UserGamificationProfileRepo
 import com.muscledia.Gamification_service.dto.response.LeaderboardResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
@@ -17,17 +18,18 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * High-performance caching service for leaderboards.
- * Implements cache warming, invalidation strategies, and fallback mechanisms.
+ * High-performance caching service for leaderboards - REDIS ONLY
  * 
- * Senior Engineering Note: Uses multi-layered caching strategy with Redis
- * for distributed caching and application-level cache with Spring Cache
- * abstraction.
- * Implements cache warming and smart invalidation for optimal performance.
+ * This service is only enabled when Redis is available.
+ * For MVP (no Redis), use SimpleMVPCacheService instead.
+ * 
+ * Implements cache warming, invalidation strategies, and fallback mechanisms.
+ * Uses multi-layered caching strategy with Redis for distributed caching.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.cost-optimization.redis-enabled", havingValue = "true")
 public class LeaderboardCacheService {
 
     private final UserGamificationProfileRepository userProfileRepository;

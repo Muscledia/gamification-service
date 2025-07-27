@@ -9,6 +9,7 @@ import com.muscledia.Gamification_service.repository.BadgeRepository;
 import com.muscledia.Gamification_service.repository.UserGamificationProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class BadgeService {
 
     private final BadgeRepository badgeRepository;

@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.cost-optimization.redis-enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class SimpleMVPCacheService {
 
     private final UserGamificationService userGamificationService;

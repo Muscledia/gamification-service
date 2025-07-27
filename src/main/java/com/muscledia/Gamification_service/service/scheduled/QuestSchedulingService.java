@@ -27,7 +27,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(value = "gamification.mongodb.enabled", havingValue = "true")
 public class QuestSchedulingService {
 
     private final QuestRepository questRepository;
