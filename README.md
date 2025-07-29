@@ -95,7 +95,7 @@ This central document stores a user's entire gamification state. The `_id` of th
   "createdAt": ISODate("2025-01-01T00:00:00.000Z"),
   "updatedAt": ISODate("2025-07-09T14:35:00.000Z")
 }
-
+````
 
 
 # Muscledia Gamification Service - API Endpoints
