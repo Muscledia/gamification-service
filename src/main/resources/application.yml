@@ -58,7 +58,7 @@ spring:
 
 # Security
 jwt:
-  secret: ${JWT_SECRET:1e5bf199c6450231fdd242f60485d0caadc32aa27a0d89da7174aed38326a879}
+  secret: ${JWT_SECRET:81795ad725b2cadd49d27a60438415588db374020a561ae19cafebeef6339655304975b150867b21d3715e341a49271a75a7dde39776e156af0ddad50f5e6ec3}
   expiration: ${JWT_EXPIRATION:86400000}
   issuer: ${JWT_ISSUER:muscledia-user-service}
 

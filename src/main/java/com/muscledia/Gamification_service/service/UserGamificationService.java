@@ -31,18 +31,33 @@ public class UserGamificationService {
 
         return userProfileRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    UserGamificationProfile newProfile = new UserGamificationProfile();
-                    newProfile.setUserId(userId);
-                    newProfile.setPoints(0);
-                    newProfile.setLevel(1);
-                    newProfile.setLastLevelUpDate(Instant.now());
-                    newProfile.setStreaks(new HashMap<>());
-                    newProfile.setEarnedBadges(new ArrayList<>());
+                    UserGamificationProfile newProfile = UserGamificationProfile.builder()
+                            .userId(userId)
+                            .points(0)
+                            .level(1)
+                            .lastLevelUpDate(Instant.now())
+                            .totalWorkoutsCompleted(0)
+                            .streaks(new HashMap<>())
+                            .earnedBadges(new ArrayList<>())
+                            .quests(new ArrayList<>())
+                            .profileCreatedAt(Instant.now())
+                            .lastUpdated(Instant.now())
+                            .build();
 
+                    newProfile.initializeDefaults();
                     UserGamificationProfile savedProfile = userProfileRepository.save(newProfile);
                     log.info("Created new user profile for user {}", userId);
                     return savedProfile;
                 });
+    }
+
+    /**
+     * FIXED: Save user profile method
+     */
+    @Transactional
+    public UserGamificationProfile saveUserProfile(UserGamificationProfile profile) {
+        profile.setLastUpdated(Instant.now());
+        return userProfileRepository.save(profile);
     }
 
     /**
@@ -60,7 +75,7 @@ public class UserGamificationService {
     public UserGamificationProfile updateUserPoints(Long userId, int pointsToAdd) {
         log.info("Adding {} points to user {}", pointsToAdd, userId);
 
-        UserGamificationProfile userProfile = getUserProfile(userId);
+        UserGamificationProfile userProfile = createOrGetUserProfile(userId);
 
         int oldPoints = userProfile.getPoints();
         int newPoints = oldPoints + pointsToAdd;
@@ -73,12 +88,10 @@ public class UserGamificationService {
         if (newLevel > oldLevel) {
             userProfile.setLevel(newLevel);
             userProfile.setLastLevelUpDate(Instant.now());
-            log.info("User {} leveled up from {} to {}", userId, oldLevel, newLevel);
+            log.info("User {} leveled up from {} to {}!", userId, oldLevel, newLevel);
         }
 
-        UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
-        log.info("Updated user {} points: {} -> {}", userId, oldPoints, newPoints);
-        return savedProfile;
+        return saveUserProfile(userProfile);
     }
 
     /**
@@ -130,36 +143,45 @@ public class UserGamificationService {
             }
         }
 
-        UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
-        return savedProfile;
+        return saveUserProfile(userProfile);
     }
 
     /**
      * Get user's current streak for a specific type
      */
     public int getUserCurrentStreak(Long userId, String streakType) {
-        UserGamificationProfile userProfile = getUserProfile(userId);
+        try {
+            UserGamificationProfile userProfile = getUserProfile(userId);
 
-        if (userProfile.getStreaks() == null) {
+            if (userProfile.getStreaks() == null) {
+                return 0;
+            }
+
+            UserGamificationProfile.StreakData streakData = userProfile.getStreaks().get(streakType);
+            return streakData != null ? streakData.getCurrent() : 0;
+        } catch (Exception e) {
+            log.warn("Error getting current streak for user {}: {}", userId, e.getMessage());
             return 0;
         }
-
-        UserGamificationProfile.StreakData streakData = userProfile.getStreaks().get(streakType);
-        return streakData != null ? streakData.getCurrent() : 0;
     }
 
     /**
      * Get user's longest streak for a specific type
      */
     public int getUserLongestStreak(Long userId, String streakType) {
-        UserGamificationProfile userProfile = getUserProfile(userId);
+        try {
+            UserGamificationProfile userProfile = getUserProfile(userId);
 
-        if (userProfile.getStreaks() == null) {
+            if (userProfile.getStreaks() == null) {
+                return 0;
+            }
+
+            UserGamificationProfile.StreakData streakData = userProfile.getStreaks().get(streakType);
+            return streakData != null ? streakData.getLongest() : 0;
+        } catch (Exception e) {
+            log.warn("Error getting longest streak for user {}: {}", userId, e.getMessage());
             return 0;
         }
-
-        UserGamificationProfile.StreakData streakData = userProfile.getStreaks().get(streakType);
-        return streakData != null ? streakData.getLongest() : 0;
     }
 
     /**
@@ -363,28 +385,18 @@ public class UserGamificationService {
     }
 
     /**
-     * Private helper method to calculate level from points
+     * Calculate level from points
      */
     private int calculateLevel(int points) {
-        // Progressive level calculation
-        if (points < 100)
-            return 1;
-        if (points < 300)
-            return 2;
-        if (points < 600)
-            return 3;
-        if (points < 1000)
-            return 4;
-        if (points < 1500)
-            return 5;
-        if (points < 2100)
-            return 6;
-        if (points < 2800)
-            return 7;
-        if (points < 3600)
-            return 8;
-        if (points < 4500)
-            return 9;
-        return 10 + (points - 4500) / 1000; // Level 10+ requires 1000 points each
+        if (points < 100) return 1;
+        if (points < 300) return 2;
+        if (points < 600) return 3;
+        if (points < 1000) return 4;
+        if (points < 1500) return 5;
+        if (points < 2100) return 6;
+        if (points < 2800) return 7;
+        if (points < 3600) return 8;
+        if (points < 4500) return 9;
+        return 10 + (points - 4500) / 1000;
     }
 }
