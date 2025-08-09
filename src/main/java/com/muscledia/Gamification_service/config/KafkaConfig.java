@@ -1,6 +1,7 @@
 package com.muscledia.Gamification_service.config;
 
 import com.muscledia.Gamification_service.event.BaseEvent;
+import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -198,7 +199,7 @@ public class KafkaConfig {
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.muscledia.Gamification_service.event");
         props.put(JsonDeserializer.TYPE_MAPPINGS, getTypeMapping());
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, BaseEvent.class);
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
         // Consumer Behavior Configuration
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -214,19 +215,34 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
+    // UPDATED: Support WorkoutCompletedEvent by using Object as the value type
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, BaseEvent> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, BaseEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
 
-        factory.setConsumerFactory(consumerFactory());
+        // Create a consumer factory that can handle Object types
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
-        // Concurrency Configuration
-        factory.setConcurrency(3); // Process messages in parallel
+        // Support WorkoutCompletedEvent specifically
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.muscledia.Gamification_service.event");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WorkoutCompletedEvent.class.getName());
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
-        // Acknowledge Configuration
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+
+        ConsumerFactory<String, Object> objectConsumerFactory = new DefaultKafkaConsumerFactory<>(props);
+        factory.setConsumerFactory(objectConsumerFactory);
+
+        factory.setConcurrency(3);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-
-        // Error Handling Configuration
         factory.setCommonErrorHandler(errorHandler());
 
         return factory;
