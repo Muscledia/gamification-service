@@ -20,6 +20,7 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.ExponentialBackOff;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
@@ -46,6 +47,16 @@ public class KafkaConfig {
     // ===============================
     // TOPIC DEFINITIONS
     // ===============================
+
+    @Bean
+    public NewTopic userEventsTopic() {
+        return TopicBuilder.name("user-events")
+                .partitions(3)
+                .replicas(1)
+                .config("retention.ms", "604800000") // 7 days
+                .config("cleanup.policy", "delete")
+                .build();
+    }
 
     /**
      * Inbound Topics - Events consumed from other services
@@ -151,17 +162,20 @@ public class KafkaConfig {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
-        // Performance Optimizations
+        // Reliability Configuration
+        props.put(ProducerConfig.ACKS_CONFIG, "all"); // Wait for all replicas
+        props.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // Prevent duplicates
+        props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+
+        // Performance Configuration
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384); // 16KB batches
         props.put(ProducerConfig.LINGER_MS_CONFIG, 10); // Wait up to 10ms for batching
-        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432); // 32MB buffer
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
 
-        // Reliability Configuration
-        props.put(ProducerConfig.ACKS_CONFIG, "1"); // Leader acknowledgment
-        props.put(ProducerConfig.RETRIES_CONFIG, 3);
-        props.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 100);
+        // Timeout Configuration
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
+        props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
 
         // JSON Serialization Configuration
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
@@ -185,7 +199,7 @@ public class KafkaConfig {
     // ===============================
 
     @Bean
-    public ConsumerFactory<String, BaseEvent> consumerFactory() {
+    public ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
 
         // Basic Configuration
@@ -197,20 +211,24 @@ public class KafkaConfig {
 
         // JSON Deserialization Configuration
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.muscledia.Gamification_service.event");
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // Use headers for type info
         props.put(JsonDeserializer.TYPE_MAPPINGS, getTypeMapping());
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, BaseEvent.class);
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, Object.class); // Fallback to Object
 
-        // Consumer Behavior Configuration
+        // Consumer Reliability Configuration
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit for reliability
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 100);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit
+        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed"); // Only read committed messages
+
+        // Performance Configuration
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10); // Process 10 records at a time
         props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
         props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
 
-        // Session and Heartbeat Configuration
+        // Session Configuration
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
+        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000); // 5 minutes
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -221,29 +239,13 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
 
-        // Create a consumer factory that can handle Object types
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-
-        // Support WorkoutCompletedEvent specifically
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.muscledia.Gamification_service.event");
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WorkoutCompletedEvent.class.getName());
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
-
-        ConsumerFactory<String, Object> objectConsumerFactory = new DefaultKafkaConsumerFactory<>(props);
-        factory.setConsumerFactory(objectConsumerFactory);
-
-        factory.setConcurrency(3);
+        factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(3); // 3 consumer threads
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         factory.setCommonErrorHandler(errorHandler());
+
+        // Batch processing (optional)
+        factory.setBatchListener(false); // Set to true if you want batch processing
 
         return factory;
     }
@@ -254,13 +256,22 @@ public class KafkaConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler() {
-        // Configure retry with exponential backoff
-        FixedBackOff fixedBackOff = new FixedBackOff(1000L, 3L); // 1 second interval, 3 retries
+        // Exponential backoff: start with 1s, max 30s, multiplier 2.0
+        ExponentialBackOff backOff = new ExponentialBackOff(1000L, 2.0);
+        backOff.setMaxInterval(30000L); // Max 30 seconds between retries
+        backOff.setMaxElapsedTime(300000L); // Total retry time: 5 minutes
 
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(fixedBackOff);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(backOff);
 
-        // Add exception classification - don't retry for certain exceptions
-        errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+        // Configure Dead Letter Topic (optional)
+        // errorHandler.setDeadLetterPublishingRecoverer(deadLetterPublishingRecoverer());
+
+        // Don't retry certain exceptions
+        errorHandler.addNotRetryableExceptions(
+                IllegalArgumentException.class,
+                NullPointerException.class,
+                ClassCastException.class
+        );
 
         return errorHandler;
     }
@@ -273,7 +284,8 @@ public class KafkaConfig {
      * Define type mappings for JSON serialization/deserialization
      */
     private String getTypeMapping() {
-        return "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent," +
+        return  "userRegistered:com.muscledia.Gamification_service.event.UserRegisteredEvent," +
+                "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent," +
                 "pr:com.muscledia.Gamification_service.event.PersonalRecordEvent," +
                 "exercise:com.muscledia.Gamification_service.event.ExerciseCompletedEvent," +
                 "streak:com.muscledia.Gamification_service.event.StreakUpdatedEvent," +
@@ -288,7 +300,7 @@ public class KafkaConfig {
  * Configuration constants for topic names and consumer groups
  */
 final class KafkaTopics {
-    public static final String USER_ACTIVITY_EVENTS = "user-activity-events";
+    public static final String USER_EVENTS = "user-events";
     public static final String WORKOUT_EVENTS = "workout-events";
     public static final String PERSONAL_RECORD_EVENTS = "personal-record-events";
     public static final String GAMIFICATION_EVENTS = "gamification-events";
