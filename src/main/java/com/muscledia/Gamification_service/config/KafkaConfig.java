@@ -1,7 +1,5 @@
 package com.muscledia.Gamification_service.config;
 
-import com.muscledia.Gamification_service.event.BaseEvent;
-import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -21,7 +19,6 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.ExponentialBackOff;
-import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,15 +45,6 @@ public class KafkaConfig {
     // TOPIC DEFINITIONS
     // ===============================
 
-    @Bean
-    public NewTopic userEventsTopic() {
-        return TopicBuilder.name("user-events")
-                .partitions(3)
-                .replicas(1)
-                .config("retention.ms", "604800000") // 7 days
-                .config("cleanup.policy", "delete")
-                .build();
-    }
 
     /**
      * Inbound Topics - Events consumed from other services
@@ -209,11 +197,14 @@ public class KafkaConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
+        // SIMPLE FIX: Trust all packages (less secure but works)
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+
         // JSON Deserialization Configuration
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.muscledia.Gamification_service.event");
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true); // Use headers for type info
+        // Disable type info headers to avoid class name conflicts
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "java.util.Map");
         props.put(JsonDeserializer.TYPE_MAPPINGS, getTypeMapping());
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, Object.class); // Fallback to Object
 
         // Consumer Reliability Configuration
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -303,6 +294,8 @@ final class KafkaTopics {
     public static final String USER_EVENTS = "user-events";
     public static final String WORKOUT_EVENTS = "workout-events";
     public static final String PERSONAL_RECORD_EVENTS = "personal-record-events";
+
+    // Output topics (created by gamification service)
     public static final String GAMIFICATION_EVENTS = "gamification-events";
     public static final String BADGE_EVENTS = "badge-events";
     public static final String LEVEL_UP_EVENTS = "level-up-events";
