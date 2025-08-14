@@ -1,8 +1,10 @@
 package com.muscledia.Gamification_service.event;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -17,9 +19,12 @@ import java.util.Map;
  */
 @Data
 @SuperBuilder(toBuilder = true)
-@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class UserRegisteredEvent extends BaseEvent {
+@AllArgsConstructor
+public class UserRegisteredEvent {
+
+    @NotNull(message = "User ID is required")
+    private Long userId;
 
     @NotBlank(message = "Username is required")
     private String username;
@@ -29,29 +34,24 @@ public class UserRegisteredEvent extends BaseEvent {
     private String email;
 
     @NotNull(message = "Registration date is required")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant registrationDate;
 
     private Map<String, Object> userPreferences;
     private String goalType;
     private String initialAvatarType;
+    private String eventType = "USER_REGISTERED";
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Instant timestamp;
 
-    @Override
-    public String getEventType() {
-        return "USER_REGISTERED";
-    }
-
-    @Override
+    /**
+     * Validate event content
+     */
     public boolean isValid() {
-        return username != null && !username.trim().isEmpty()
-                && email != null && !email.trim().isEmpty()
-                && registrationDate != null;
-    }
-
-    @Override
-    public BaseEvent withNewTimestamp() {
-        return this.toBuilder()
-                .timestamp(Instant.now())
-                .build();
+        return userId != null &&
+                username != null && !username.trim().isEmpty() &&
+                email != null && !email.trim().isEmpty() &&
+                registrationDate != null;
     }
 }
