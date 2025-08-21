@@ -103,4 +103,10 @@ public abstract class BaseEvent {
      * Create a copy of this event with updated timestamp (for retries)
      */
     public abstract BaseEvent withNewTimestamp();
+
+    // Add this helper method for intensity calculation
+    public abstract double getIntensityScore();
+
+    // Add this helper method for streak eligibility
+    public abstract boolean isStreakEligible();
 }

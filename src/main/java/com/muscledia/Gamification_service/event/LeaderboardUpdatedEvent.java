@@ -60,6 +60,16 @@ public class LeaderboardUpdatedEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     public boolean isSignificantChange() {
         if (previousRank == null)
             return newRank <= 100; // New entry in top 100

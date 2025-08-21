@@ -103,6 +103,16 @@ public class LevelUpEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     /**
      * Calculate the number of levels gained
      */

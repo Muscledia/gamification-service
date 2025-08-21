@@ -166,6 +166,16 @@ public class BadgeEarnedEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     /**
      * Check if this badge earning also resulted in a level up
      */

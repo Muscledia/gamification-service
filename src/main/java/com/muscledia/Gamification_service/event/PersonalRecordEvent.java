@@ -102,6 +102,16 @@ public class PersonalRecordEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     /**
      * Calculate improvement percentage over previous record
      */
