@@ -276,14 +276,7 @@ public class KafkaConfig {
      */
     private String getTypeMapping() {
         return  "userRegistered:com.muscledia.Gamification_service.event.UserRegisteredEvent," +
-                "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent," +
-                "pr:com.muscledia.Gamification_service.event.PersonalRecordEvent," +
-                "exercise:com.muscledia.Gamification_service.event.ExerciseCompletedEvent," +
-                "streak:com.muscledia.Gamification_service.event.StreakUpdatedEvent," +
-                "badge:com.muscledia.Gamification_service.event.BadgeEarnedEvent," +
-                "levelup:com.muscledia.Gamification_service.event.LevelUpEvent," +
-                "quest:com.muscledia.Gamification_service.event.QuestCompletedEvent," +
-                "leaderboard:com.muscledia.Gamification_service.event.LeaderboardUpdatedEvent";
+                "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent";
     }
 }
 
