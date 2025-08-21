@@ -62,18 +62,18 @@ public class UserGamificationProfile {
     }
 
     /**
-     * Add a badge to the user's collection
+     * Add a badge to the user's earned badges list
      */
     public void addBadge(UserBadge badge) {
         if (this.earnedBadges == null) {
             this.earnedBadges = new ArrayList<>();
         }
 
-        // Check if badge already exists
-        boolean exists = this.earnedBadges.stream()
-                .anyMatch(existing -> existing.getBadgeId().equals(badge.getBadgeId()));
+        // Avoid duplicates
+        boolean alreadyHas = this.earnedBadges.stream()
+                .anyMatch(existingBadge -> badge.getBadgeId().equals(existingBadge.getBadgeId()));
 
-        if (!exists) {
+        if (!alreadyHas) {
             this.earnedBadges.add(badge);
             this.lastUpdated = Instant.now();
         }
@@ -101,16 +101,26 @@ public class UserGamificationProfile {
     }
 
     /**
-     * Initialize default values
+     * Initialize default values for new profiles
      */
     public void initializeDefaults() {
-        if (this.points == null) this.points = 0;
-        if (this.level == null) this.level = 1;
-        if (this.totalWorkoutsCompleted == null) this.totalWorkoutsCompleted = 0;
-        if (this.streaks == null) this.streaks = new HashMap<>();
-        if (this.earnedBadges == null) this.earnedBadges = new ArrayList<>();
-        if (this.quests == null) this.quests = new ArrayList<>();
-        if (this.profileCreatedAt == null) this.profileCreatedAt = Instant.now();
-        this.lastUpdated = Instant.now();
+        if (this.earnedBadges == null) {
+            this.earnedBadges = new ArrayList<>();
+        }
+        if (this.streaks == null) {
+            this.streaks = new HashMap<>();
+        }
+        if (this.quests == null) {
+            this.quests = new ArrayList<>();
+        }
+        if (this.points == null) {
+            this.points = 0;
+        }
+        if (this.level == null) {
+            this.level = 1;
+        }
+        if (this.totalWorkoutsCompleted == null) {
+            this.totalWorkoutsCompleted = 0;
+        }
     }
 }

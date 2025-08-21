@@ -10,14 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Service for managing user achievements and automatic badge awarding
- *
- * This service implements the core achievement logic for the user story:
- * "Earn achievements automatically when completing specific actions"
+ * CLEAN Achievement Service - Direct badge awarding without complex dependencies
+ * Implements: "Earn achievements automatically when completing specific actions"
  */
 @Service
 @RequiredArgsConstructor
@@ -25,202 +21,179 @@ import java.util.Map;
 public class AchievementService {
 
     private final UserGamificationService userGamificationService;
-    private final BadgeService badgeService;
 
     /**
-     * Process workout completion and check for achievements
-     *
-     * IMPLEMENTS USER STORY ACCEPTANCE CRITERIA:
-     * - Check if workout satisfies achievement criteria (e.g., first workout)
-     * - Update user record to show new achievement
+     * Process workout completion and award achievements
+     * IMPLEMENTS USER STORY: Check if workout satisfies criteria and update user record
      */
     @Transactional
     public void processWorkoutAchievements(WorkoutCompletedEvent event) {
         log.info("Processing achievements for user {} from workout {}",
                 event.getUserId(), event.getWorkoutId());
 
-        // Get or create user profile
-        UserGamificationProfile userProfile = userGamificationService.createOrGetUserProfile(event.getUserId());
+        try {
+            UserGamificationProfile userProfile = userGamificationService.createOrGetUserProfile(event.getUserId());
 
-        // Check various achievement types
-        checkFirstWorkoutAchievement(event, userProfile);
-        checkWorkoutCountMilestones(event, userProfile);
-        checkConsistencyAchievements(event, userProfile);
-        checkIntensityAchievements(event, userProfile);
-        checkDurationAchievements(event, userProfile);
-        checkVolumeAchievements(event, userProfile);
+            // Calculate current workout count
+            int workoutCount = userProfile.getTotalWorkoutsCompleted() != null ?
+                    userProfile.getTotalWorkoutsCompleted() : 1;
+
+            // Check all achievement types
+            checkFirstWorkoutAchievement(userProfile, workoutCount);
+            checkWorkoutMilestones(userProfile, workoutCount);
+            checkStreakAchievements(userProfile, event);
+            checkDurationAchievements(userProfile, event);
+            checkVolumeAchievements(userProfile, event);
+
+            // Save updated profile
+            userGamificationService.saveUserProfile(userProfile);
+
+            log.info("Achievement processing completed for user {}", event.getUserId());
+
+        } catch (Exception e) {
+            log.error("Failed to process achievements for user {}: {}", event.getUserId(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
      * Check and award "First Workout" achievement
-     * Classic example from the user story
      */
-    private void checkFirstWorkoutAchievement(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
-        // Use actual workout count if available, otherwise estimate from points
-        int workoutCount = userProfile.getTotalWorkoutsCompleted() != null ?
-                userProfile.getTotalWorkoutsCompleted() :
-                userProfile.getPoints() / 50;
+    private void checkFirstWorkoutAchievement(UserGamificationProfile userProfile, int workoutCount) {
+        if (workoutCount == 1) {
+            log.info("FIRST WORKOUT ACHIEVEMENT: User {} completed their first workout!", userProfile.getUserId());
 
-        if (workoutCount <= 1) { // This is their first workout
-            log.info("FIRST WORKOUT ACHIEVEMENT: User {} completed their first workout!",
-                    event.getUserId());
-
-            awardAchievementBadge(userProfile, "FIRST_WORKOUT", "First Steps",
-                    "Completed your first workout! The journey begins.", 10);
+            awardBadge(userProfile, "FIRST_WORKOUT", "First Steps",
+                    "Congratulations on completing your first workout!", 25);
         }
     }
 
     /**
      * Check workout count milestone achievements
      */
-    private void checkWorkoutCountMilestones(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
-        // Use actual workout count if available
-        int workoutCount = userProfile.getTotalWorkoutsCompleted() != null ?
-                userProfile.getTotalWorkoutsCompleted() :
-                (userProfile.getPoints() / 50) + 1;
-
-        // Define milestones
-        Map<Integer, String[]> milestones = new HashMap<>();
-        milestones.put(5, new String[]{"WORKOUT_5", "Getting Started", "Completed 5 workouts"});
-        milestones.put(10, new String[]{"WORKOUT_10", "Committed", "Completed 10 workouts"});
-        milestones.put(25, new String[]{"WORKOUT_25", "Dedicated", "Completed 25 workouts"});
-        milestones.put(50, new String[]{"WORKOUT_50", "Fitness Enthusiast", "Completed 50 workouts"});
-        milestones.put(100, new String[]{"WORKOUT_100", "Fitness Warrior", "Completed 100 workouts"});
-
-        for (Map.Entry<Integer, String[]> milestone : milestones.entrySet()) {
-            if (workoutCount == milestone.getKey()) {
-                String[] badgeInfo = milestone.getValue();
-                log.info("MILESTONE ACHIEVEMENT: User {} reached {} workouts!",
-                        event.getUserId(), milestone.getKey());
-
-                awardAchievementBadge(userProfile, badgeInfo[0], badgeInfo[1], badgeInfo[2],
-                        milestone.getKey() * 5); // Bonus points
+    private void checkWorkoutMilestones(UserGamificationProfile userProfile, int workoutCount) {
+        switch (workoutCount) {
+            case 5:
+                awardBadge(userProfile, "WORKOUT_5", "Getting Started",
+                        "Completed 5 workouts!", 25);
                 break;
+            case 10:
+                awardBadge(userProfile, "WORKOUT_10", "Committed",
+                        "Completed 10 workouts!", 50);
+                break;
+            case 25:
+                awardBadge(userProfile, "WORKOUT_25", "Dedicated",
+                        "Completed 25 workouts!", 75);
+                break;
+            case 50:
+                awardBadge(userProfile, "WORKOUT_50", "Fitness Enthusiast",
+                        "Completed 50 workouts!", 100);
+                break;
+            case 100:
+                awardBadge(userProfile, "WORKOUT_100", "Fitness Warrior",
+                        "Completed 100 workouts!", 200);
+                break;
+        }
+    }
+
+    /**
+     * Check streak-based achievements
+     */
+    private void checkStreakAchievements(UserGamificationProfile userProfile, WorkoutCompletedEvent event) {
+        try {
+            int currentStreak = userGamificationService.getUserCurrentStreak(event.getUserId(), "workout");
+
+            switch (currentStreak) {
+                case 3:
+                    awardBadge(userProfile, "STREAK_3", "Building Momentum",
+                            "3-day workout streak!", 15);
+                    break;
+                case 7:
+                    awardBadge(userProfile, "STREAK_7", "Week Warrior",
+                            "One week streak!", 35);
+                    break;
+                case 14:
+                    awardBadge(userProfile, "STREAK_14", "Two Week Champion",
+                            "Two week streak!", 75);
+                    break;
+                case 30:
+                    awardBadge(userProfile, "STREAK_30", "Monthly Master",
+                            "One month streak!", 150);
+                    break;
             }
-        }
-    }
-
-    /**
-     * Check consistency/streak achievements
-     */
-    private void checkConsistencyAchievements(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
-        // Check current workout streak
-        int currentStreak = userGamificationService.getUserCurrentStreak(event.getUserId(), "workout");
-
-        if (currentStreak == 7) {
-            awardAchievementBadge(userProfile, "WEEK_STREAK", "Week Warrior",
-                    "Worked out every day for a week!", 25);
-        } else if (currentStreak == 30) {
-            awardAchievementBadge(userProfile, "MONTH_STREAK", "Monthly Master",
-                    "30-day workout streak achieved!", 100);
-        }
-    }
-
-    /**
-     * Check intensity-based achievements
-     */
-    private void checkIntensityAchievements(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
-        double intensity = event.getIntensityScore();
-
-        if (intensity >= 3.0) {
-            awardAchievementBadge(userProfile, "HIGH_INTENSITY", "Intensity Monster",
-                    "Completed a high-intensity workout!", 15);
-        }
-
-        if (intensity >= 5.0) {
-            awardAchievementBadge(userProfile, "EXTREME_INTENSITY", "Beast Mode",
-                    "Extreme intensity workout completed!", 30);
+        } catch (Exception e) {
+            log.warn("Failed to check streak achievements for user {}: {}", userProfile.getUserId(), e.getMessage());
         }
     }
 
     /**
      * Check duration-based achievements
      */
-    private void checkDurationAchievements(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
+    private void checkDurationAchievements(UserGamificationProfile userProfile, WorkoutCompletedEvent event) {
         Integer duration = event.getDurationMinutes();
 
         if (duration != null) {
             if (duration >= 60) {
-                awardAchievementBadge(userProfile, "HOUR_WARRIOR", "Hour Warrior",
-                        "Worked out for over an hour!", 20);
+                awardBadge(userProfile, "HOUR_WORKOUT", "Hour Warrior",
+                        "Worked out for over an hour!", 30);
             }
 
-            if (duration >= 120) {
-                awardAchievementBadge(userProfile, "ENDURANCE_KING", "Endurance King",
-                        "Epic 2+ hour workout completed!", 50);
+            if (duration >= 90) {
+                awardBadge(userProfile, "ENDURANCE_MASTER", "Endurance Master",
+                        "90+ minute workout completed!", 50);
             }
         }
     }
 
+    /**
+     * Check volume-based achievements
+     */
+    private void checkVolumeAchievements(UserGamificationProfile userProfile, WorkoutCompletedEvent event) {
+        if (event.getTotalSets() != null && event.getTotalSets() >= 20) {
+            awardBadge(userProfile, "VOLUME_CRUSHER", "Volume Crusher",
+                    "Completed 20+ sets in a single workout!", 20);
+        }
+
+        if (event.getTotalReps() != null && event.getTotalReps() >= 200) {
+            awardBadge(userProfile, "REP_MASTER", "Rep Master",
+                    "Completed 200+ reps in a single workout!", 30);
+        }
+    }
 
     /**
-     * FIXED: Award an achievement badge to the user using BadgeService
+     * Award a badge directly to the user profile
      */
-    private void awardAchievementBadge(UserGamificationProfile userProfile, String badgeId,
-                                       String badgeName, String description, int bonusPoints) {
+    private void awardBadge(UserGamificationProfile userProfile, String badgeId,
+                            String badgeName, String description, int bonusPoints) {
         try {
             // Check if user already has this badge
-            boolean alreadyHas = userProfile.getEarnedBadges().stream()
-                    .anyMatch(badge -> badgeId.equals(badge.getBadgeId()));
+            boolean alreadyHas = userProfile.getEarnedBadges() != null &&
+                    userProfile.getEarnedBadges().stream()
+                            .anyMatch(badge -> badgeId.equals(badge.getBadgeId()));
 
             if (!alreadyHas) {
-                // FIXED: Use BadgeService to award the badge
-                try {
-                    badgeService.awardBadge(userProfile.getUserId(), badgeId);
-                    log.info("NEW ACHIEVEMENT: User {} earned '{}' badge via BadgeService",
-                            userProfile.getUserId(), badgeName);
-                } catch (Exception e) {
-                    // If BadgeService fails, manually add to profile as fallback
-                    log.warn("BadgeService failed, adding badge manually: {}", e.getMessage());
-                    UserBadge newBadge = UserBadge.builder()
-                            .badgeId(badgeId)
-                            .badgeName(badgeName)
-                            .description(description)
-                            .earnedAt(Instant.now())
-                            .pointsAwarded(bonusPoints)
-                            .build();
+                // Create new badge
+                UserBadge newBadge = UserBadge.builder()
+                        .badgeId(badgeId)
+                        .badgeName(badgeName)
+                        .description(description)
+                        .category("WORKOUT")
+                        .pointsAwarded(bonusPoints)
+                        .earnedAt(Instant.now())
+                        .build();
 
-                    userProfile.addBadge(newBadge);
-                    userGamificationService.createOrGetUserProfile(userProfile.getUserId()); // Save profile
-                }
+                // Add badge to profile
+                userProfile.addBadge(newBadge);
 
-                // Award bonus points for the achievement
-                if (bonusPoints > 0) {
-                    userGamificationService.updateUserPoints(userProfile.getUserId(), bonusPoints);
-                }
+                // Award bonus points
+                userProfile.setPoints(userProfile.getPoints() + bonusPoints);
 
-                log.info("ACHIEVEMENT AWARDED: User {} earned '{}' badge with {} bonus points",
+                log.info("NEW ACHIEVEMENT: User {} earned '{}' badge with {} bonus points",
                         userProfile.getUserId(), badgeName, bonusPoints);
-            } else {
-                log.debug("User {} already has badge {}, skipping", userProfile.getUserId(), badgeId);
             }
         } catch (Exception e) {
-            log.error("Failed to award achievement badge {} to user {}: {}",
+            log.error("Failed to award badge {} to user {}: {}",
                     badgeId, userProfile.getUserId(), e.getMessage());
-        }
-    }
-
-
-    /**
-     * FIXED: Check volume-based achievements (missing method)
-     */
-    private void checkVolumeAchievements(WorkoutCompletedEvent event, UserGamificationProfile userProfile) {
-        // Check total sets achievement
-        if (event.getTotalSets() != null && event.getTotalSets() >= 20) {
-            awardAchievementBadge(userProfile, "VOLUME_CRUSHER", "Volume Crusher",
-                    "Completed 20+ sets in a single workout!", 15);
-        }
-
-        // Check total reps achievement
-        if (event.getTotalReps() != null && event.getTotalReps() >= 200) {
-            awardAchievementBadge(userProfile, "REP_MASTER", "Rep Master",
-                    "Completed 200+ reps in a single workout!", 25);
-        }
-
-        // Check for extreme volume
-        if (event.getTotalSets() != null && event.getTotalSets() >= 50) {
-            awardAchievementBadge(userProfile, "EXTREME_VOLUME", "Volume Beast",
-                    "Completed 50+ sets in a single workout!", 40);
         }
     }
 }
