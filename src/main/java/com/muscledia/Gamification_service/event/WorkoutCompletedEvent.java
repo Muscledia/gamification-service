@@ -1,13 +1,16 @@
 package com.muscledia.Gamification_service.event;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,9 +23,12 @@ import java.util.Map;
  */
 @Data
 @SuperBuilder(toBuilder = true)
-@EqualsAndHashCode(callSuper = true)
+@Slf4j
 public class WorkoutCompletedEvent extends BaseEvent {
 
+    private String eventId;
+
+    private Long userId;
     /**
      * Unique identifier for the workout
      */
@@ -65,6 +71,10 @@ public class WorkoutCompletedEvent extends BaseEvent {
     @Min(1)
     private Integer totalReps;
 
+    private BigDecimal totalVolume;  // Add this field
+
+    private List<String> workedMuscleGroups;  // Add this field
+
     /**
      * When the workout was started
      */
@@ -76,6 +86,8 @@ public class WorkoutCompletedEvent extends BaseEvent {
      */
     @NotNull
     private Instant workoutEndTime;
+
+    private Instant timestamp;
 
     /**
      * Additional metadata about the workout
@@ -92,18 +104,30 @@ public class WorkoutCompletedEvent extends BaseEvent {
 
     @Override
     public String getEventType() {
-        return "WORKOUT_COMPLETED";
+        return "WORKOUT_COMPLETED"; // Must match "name" in BaseEvent's
     }
 
+
+    // Simple validation method
     @Override
     public boolean isValid() {
-        return workoutId != null && !workoutId.trim().isEmpty()
-                && workoutType != null && !workoutType.trim().isEmpty()
-                && durationMinutes != null && durationMinutes > 0
-                && exercisesCompleted != null && exercisesCompleted > 0
-                && workoutStartTime != null
-                && workoutEndTime != null
-                && workoutEndTime.isAfter(workoutStartTime);
+        // Relaxed validation - only check essential fields
+        boolean hasUserId = userId != null;
+        boolean hasWorkoutId = workoutId != null && !workoutId.trim().isEmpty();
+        boolean hasWorkoutType = workoutType != null && !workoutType.trim().isEmpty();
+        boolean hasValidTimes = workoutStartTime != null && workoutEndTime != null;
+
+        boolean valid = hasUserId && hasWorkoutId && hasWorkoutType && hasValidTimes;
+
+        // Log validation details for debugging
+        if (!valid) {
+            log.warn("WorkoutCompletedEvent validation failed: userId={}, workoutId={}, workoutType={}, times=valid:{}",
+                    userId, workoutId, workoutType, hasValidTimes);
+        } else {
+            log.debug("WorkoutCompletedEvent validation passed for user {}, workout {}", userId, workoutId);
+        }
+
+        return valid;
     }
 
     @Override
@@ -113,22 +137,18 @@ public class WorkoutCompletedEvent extends BaseEvent {
                 .build();
     }
 
-    /**
-     * Calculate workout intensity score for gamification
-     */
+    // Add this helper method for intensity calculation
+    @Override
     public double getIntensityScore() {
-        if (durationMinutes == null || totalSets == null) {
+        if (durationMinutes == null || totalSets == null || durationMinutes == 0) {
             return 0.0;
         }
-
-        // Simple intensity calculation: sets per minute
         return (double) totalSets / durationMinutes;
     }
 
-    /**
-     * Check if this workout contributes to streak calculations
-     */
+    // Add this helper method for streak eligibility
+    @Override
     public boolean isStreakEligible() {
-        return durationMinutes != null && durationMinutes >= 15; // Minimum 15 minutes
+        return durationMinutes != null && durationMinutes >= 15;
     }
 }

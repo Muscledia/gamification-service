@@ -1,6 +1,7 @@
 package com.muscledia.Gamification_service.event.consumer;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import com.muscledia.Gamification_service.event.handler.WorkoutEventHandler;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -13,6 +14,8 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * Kafka consumer for WorkoutCompletedEvent from workout-service
@@ -35,6 +38,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class WorkoutCompletedEventConsumer {
     private final WorkoutEventHandler workoutEventHandler;
+    private final ObjectMapper objectMapper;
 
     /**
      * CORE USER STORY IMPLEMENTATION: Process workout completion for achievements
@@ -54,17 +58,43 @@ public class WorkoutCompletedEventConsumer {
             Acknowledgment acknowledgment) {
 
         try {
-            // ADDED: Cast to WorkoutCompletedEvent
-            if (!(eventObject instanceof WorkoutCompletedEvent)) {
-                log.warn("Received non-WorkoutCompletedEvent object: {}", eventObject.getClass());
+            log.info("RAW EVENT RECEIVED: class={}, content={}",
+                    eventObject.getClass().getSimpleName(), eventObject);
+
+            WorkoutCompletedEvent event = null;
+
+            // HANDLE DIFFERENT EVENT FORMATS
+            switch (eventObject) {
+                case WorkoutCompletedEvent workoutCompletedEvent -> {
+                    event = workoutCompletedEvent;
+                    log.info("Direct WorkoutCompletedEvent received");
+                }
+                case Map map -> {
+                    // Convert Map to WorkoutCompletedEvent
+                    Map<String, Object> eventMap = (Map<String, Object>) eventObject;
+                    event = objectMapper.convertValue(eventMap, WorkoutCompletedEvent.class);
+                    log.info("Converted Map to WorkoutCompletedEvent: userId={}", event.getUserId());
+                }
+                case String s -> {
+                    // Parse JSON string
+                    event = objectMapper.readValue(s, WorkoutCompletedEvent.class);
+                    log.info("Parsed JSON string to WorkoutCompletedEvent");
+                }
+                default -> {
+                    log.error("UNSUPPORTED EVENT TYPE: {}", eventObject.getClass());
+                    acknowledgment.acknowledge();
+                    return;
+                }
+            }
+
+            if (event == null) {
+                log.error("Failed to convert event object to WorkoutCompletedEvent");
                 acknowledgment.acknowledge();
                 return;
             }
 
-            WorkoutCompletedEvent event = (WorkoutCompletedEvent) eventObject;
-
-            log.info("USER STORY IMPLEMENTATION: Received WorkoutCompletedEvent for user {} from topic {}",
-                    event.getUserId(), topic);
+            log.info("ROCESSING WORKOUT EVENT: userId={}, workoutId={}, duration={}min",
+                    event.getUserId(), event.getWorkoutId(), event.getDurationMinutes());
 
             // Validate event before processing
             if (!event.isValid()) {
@@ -73,8 +103,6 @@ public class WorkoutCompletedEventConsumer {
                 return;
             }
 
-            log.info("🏋Processing workout completion for achievements: userId={}, workoutId={}, duration={}min",
-                    event.getUserId(), event.getWorkoutId(), event.getDurationMinutes());
 
             // CORE IMPLEMENTATION: Process achievements
             workoutEventHandler.handleWorkoutCompleted(event);
@@ -82,11 +110,10 @@ public class WorkoutCompletedEventConsumer {
             // Acknowledge successful processing
             acknowledgment.acknowledge();
 
-            log.info("USER STORY SUCCESS: Achievements processed for user {} - user record updated",
-                    event.getUserId());
+            log.info("GAMIFICATION SUCCESS: Processed workout event for user {}", event.getUserId());
 
         } catch (Exception e) {
-            log.error("USER STORY FAILURE: Failed to process WorkoutCompletedEvent: {}", e.getMessage(), e);
+            log.error("GAMIFICATION FAILURE: Failed to process WorkoutCompletedEvent: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to process workout completion event", e);
         }
     }
