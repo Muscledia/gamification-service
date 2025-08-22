@@ -35,7 +35,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
+@ConditionalOnProperty(value = "gamification.duplicate.consumer.enabled", havingValue = "true") // DISABLE by default
 public class WorkoutCompletedEventConsumer {
     private final WorkoutEventHandler workoutEventHandler;
     private final ObjectMapper objectMapper;

@@ -85,16 +85,6 @@ public class TransactionalEventPublisher {
                 event.getEventId(), event.getUserId());
     }
 
-    /**
-     * Publish generic gamification event (transactionally)
-     */
-    @Transactional
-    public void publishGamificationEvent(BaseEvent event) {
-        validateEvent(event);
-        eventOutboxService.storeForPublishing(event);
-        log.info("Stored gamification event {} for user {} in outbox",
-                event.getEventId(), event.getUserId());
-    }
 
     /**
      * Validate event before storing
