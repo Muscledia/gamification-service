@@ -1,14 +1,14 @@
 package com.muscledia.Gamification_service.event;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -26,73 +26,63 @@ import java.util.Map;
 @Slf4j
 public class WorkoutCompletedEvent extends BaseEvent {
 
-    private String eventId;
-
-    private Long userId;
     /**
      * Unique identifier for the workout
      */
-    @NotBlank
+    //@NotBlank(message = "Workout ID must not be blank")
+    @JsonProperty("workoutId")
     private String workoutId;
 
     /**
      * Type of workout (e.g., "strength", "cardio", "hiit")
      */
-    @NotBlank
+    @JsonProperty("workoutType")
     private String workoutType;
 
     /**
      * Duration of workout in minutes
      */
-    @Min(1)
+    @JsonProperty("durationMinutes")
     private Integer durationMinutes;
 
-    /**
-     * Calories burned during workout
-     */
-    @Min(0)
+    @JsonProperty("caloriesBurned")
     private Integer caloriesBurned;
 
-    /**
-     * Number of exercises completed
-     */
-    @Min(1)
+    @JsonProperty("exercisesCompleted")
     private Integer exercisesCompleted;
 
-    /**
-     * Total sets completed across all exercises
-     */
-    @Min(1)
+    @JsonProperty("totalSets")
     private Integer totalSets;
 
-    /**
-     * Total reps completed across all exercises
-     */
-    @Min(1)
+    @JsonProperty("totalReps")
     private Integer totalReps;
 
-    private BigDecimal totalVolume;  // Add this field
+    @JsonProperty("totalVolume")
+    private Double totalVolume;
 
-    private List<String> workedMuscleGroups;  // Add this field
+    // Muscle Groups (array of strings)
+    @JsonProperty("workedMuscleGroups")
+    private List<String> workedMuscleGroups;
 
     /**
      * When the workout was started
      */
-    @NotNull
+    @JsonProperty("workoutStartTime")
+    @JsonDeserialize(using = TimestampDeserializer.class)
     private Instant workoutStartTime;
 
-    /**
-     * When the workout was completed
-     */
-    @NotNull
+    @JsonProperty("workoutEndTime")
+    @JsonDeserialize(using = TimestampDeserializer.class)
     private Instant workoutEndTime;
 
+    @JsonProperty("timestamp")
     private Instant timestamp;
 
     /**
      * Additional metadata about the workout
      * e.g., {"difficulty": "intermediate", "category": "upper-body"}
      */
+    @JsonProperty("metadata")
     private Map<String, Object> metadata;
 
     /**
@@ -112,19 +102,18 @@ public class WorkoutCompletedEvent extends BaseEvent {
     @Override
     public boolean isValid() {
         // Relaxed validation - only check essential fields
-        boolean hasUserId = userId != null;
+        boolean baseValid = isBaseValid();
         boolean hasWorkoutId = workoutId != null && !workoutId.trim().isEmpty();
         boolean hasWorkoutType = workoutType != null && !workoutType.trim().isEmpty();
-        boolean hasValidTimes = workoutStartTime != null && workoutEndTime != null;
 
-        boolean valid = hasUserId && hasWorkoutId && hasWorkoutType && hasValidTimes;
+        boolean valid = baseValid && hasWorkoutId && hasWorkoutType;
 
-        // Log validation details for debugging
         if (!valid) {
-            log.warn("WorkoutCompletedEvent validation failed: userId={}, workoutId={}, workoutType={}, times=valid:{}",
-                    userId, workoutId, workoutType, hasValidTimes);
+            log.warn("WorkoutCompletedEvent validation failed: userId={}, workoutId={}, workoutType={}",
+                    getUserId(), workoutId, workoutType);
         } else {
-            log.debug("WorkoutCompletedEvent validation passed for user {}, workout {}", userId, workoutId);
+            log.debug("WorkoutCompletedEvent validation passed for user {}, workout {}",
+                    getUserId(), workoutId);
         }
 
         return valid;
@@ -151,4 +140,5 @@ public class WorkoutCompletedEvent extends BaseEvent {
     public boolean isStreakEligible() {
         return durationMinutes != null && durationMinutes >= 15;
     }
+
 }
