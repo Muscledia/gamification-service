@@ -23,7 +23,6 @@ import java.util.Map;
 @SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 public class BadgeEarnedEvent extends BaseEvent {
-
     /**
      * Unique identifier of the badge earned
      */
@@ -127,7 +126,7 @@ public class BadgeEarnedEvent extends BaseEvent {
             @JsonProperty("newTotalPoints") Integer newTotalPoints,
             @JsonProperty("achievementData") Map<String, Object> achievementData) {
 
-        super(eventId, timestamp, userId, source, version);
+        super(userId, eventId, timestamp, source, version);
         this.badgeId = badgeId;
         this.badgeName = badgeName;
         this.badgeType = badgeType;
