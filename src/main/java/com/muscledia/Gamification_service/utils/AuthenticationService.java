@@ -28,13 +28,11 @@ public class AuthenticationService {
                 throw new AccessDeniedException("User is not authenticated");
             }
 
-            if (!(authentication.getPrincipal() instanceof UserPrincipal)) {
+            if (!(authentication.getPrincipal() instanceof UserPrincipal userPrincipal)) {
                 log.warn("Authentication principal is not UserPrincipal: {}",
                         authentication.getPrincipal().getClass().getSimpleName());
                 throw new AccessDeniedException("Invalid authentication principal");
             }
-
-            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
             // Validate that the user principal has required information
             if (userPrincipal.getUserId() == null) {
@@ -224,94 +222,4 @@ public class AuthenticationService {
         }
     }
 
-    /**
-     * Validate that the current user has a specific role
-     */
-    public static void validateRole(String role) {
-        if (!hasRole(role)) {
-            String currentUsername = getCurrentUsernameSafe();
-            log.warn("Access denied: User {} does not have required role: {}", currentUsername, role);
-            throw new AccessDeniedException("Access denied: Required role '" + role + "' not found");
-        }
-    }
-
-    /**
-     * Validate that the current user has any of the specified roles
-     */
-    public static void validateAnyRole(String... roles) {
-        if (!hasAnyRole(roles)) {
-            String currentUsername = getCurrentUsernameSafe();
-            log.warn("Access denied: User {} does not have any of the required roles: {}",
-                    currentUsername, String.join(", ", roles));
-            throw new AccessDeniedException("Access denied: None of the required roles found: " +
-                    String.join(", ", roles));
-        }
-    }
-
-    /**
-     * Validate that the current user is an admin
-     */
-    public static void validateAdmin() {
-        validateRole("ADMIN");
-    }
-
-    /**
-     * Check if there is an authenticated user
-     */
-    public static boolean isAuthenticated() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            return authentication != null &&
-                    authentication.isAuthenticated() &&
-                    authentication.getPrincipal() instanceof UserPrincipal;
-        } catch (Exception e) {
-            log.debug("Error checking authentication status: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get current user information safely (for logging purposes)
-     */
-    public static String getCurrentUserInfo() {
-        try {
-            UserPrincipal user = getCurrentUser();
-            return String.format("User[id=%d, username=%s]", user.getUserId(), user.getUsername());
-        } catch (Exception e) {
-            return "User[anonymous]";
-        }
-    }
-
-    /**
-     * Execute an action only if the user is authenticated
-     */
-    public static void ifAuthenticated(Runnable action) {
-        if (isAuthenticated()) {
-            try {
-                action.run();
-            } catch (Exception e) {
-                log.error("Error executing authenticated action: {}", e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Execute an action only if the user has the specified role
-     */
-    public static void ifHasRole(String role, Runnable action) {
-        if (hasRole(role)) {
-            try {
-                action.run();
-            } catch (Exception e) {
-                log.error("Error executing role-based action for role '{}': {}", role, e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Execute an action only if the user is an admin
-     */
-    public static void ifAdmin(Runnable action) {
-        ifHasRole("ADMIN", action);
-    }
 }
