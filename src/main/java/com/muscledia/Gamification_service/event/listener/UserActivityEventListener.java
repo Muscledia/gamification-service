@@ -414,8 +414,23 @@ public class UserActivityEventListener {
             return false;
         }
 
-        // TEMPORARY: Skip Bean Validation completely
-        log.warn("⚠️ SKIPPING BEAN VALIDATION - TESTING MODE");
+        /// TEMPORARILY enable Bean Validation with detailed logging
+        Set<ConstraintViolation<WorkoutCompletedEvent>> violations = validator.validate(event);
+
+        if (!violations.isEmpty()) {
+            log.error("Bean validation failed for event {}:", event.getEventId());
+            violations.forEach(violation ->
+                    log.error("  Field: '{}', Value: '{}', Message: '{}'",
+                            violation.getPropertyPath(),
+                            violation.getInvalidValue(),
+                            violation.getMessage())
+            );
+
+            // For now, log but don't fail - just warn
+            log.warn("⚠️ Bean validation issues found but proceeding anyway");
+        } else {
+            log.info("✅ Bean validation passed");
+        }
 
         // Only do basic null checks using getters (which we know work)
         if (event.getEventId() == null || event.getEventId().trim().isEmpty()) {

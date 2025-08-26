@@ -81,6 +81,9 @@ gamification:
     processing:
       enabled: ${EVENTS_ENABLED:true} # Disabled for testing
       batch-size: ${EVENT_BATCH_SIZE:50}
+  duplicate:
+    consumer:
+      enabled: false # Disable the duplicate consumer
 
   scheduling:
     enabled: ${SCHEDULING_ENABLED:false} # MVP: false, Prod: true
@@ -119,7 +122,9 @@ logging:
   level:
     com.muscledia.Gamification_service: ${LOG_LEVEL:INFO}
     org.springframework: WARN
-    kafka: ${KAFKA_LOG_LEVEL:OFF}
+    com.muscledia.Gamification_service.event: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
     redis: ${REDIS_LOG_LEVEL:OFF}
 
 # API Documentation - Enabled for testing
