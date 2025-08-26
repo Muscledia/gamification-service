@@ -7,11 +7,13 @@ import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.model.enums.BadgeType;
 import com.muscledia.Gamification_service.model.enums.BadgeCriteriaType;
 import com.muscledia.Gamification_service.service.BadgeService;
+import com.muscledia.Gamification_service.utils.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -162,15 +164,18 @@ public class BadgeController {
     }
 
     /**
-     * Get eligible badges for a user based on their stats
+     * Get eligible badges for current user
      */
     @PostMapping("/eligible")
     public ResponseEntity<ApiResponse<List<Badge>>> getEligibleBadges(@Valid @RequestBody UserStatsRequest request) {
+        Long userId = AuthenticationService.getCurrentUserId();
+        log.info("Getting eligible badges for current user {}", userId);
 
-        log.info("Getting eligible badges for user {}", request.getUserId());
+        // Override any userId in request with current user
+        request.setUserId(userId);
 
         try {
-            List<Badge> eligibleBadges = badgeService.getEligibleBadges(request.getUserId(), request.getUserStats());
+            List<Badge> eligibleBadges = badgeService.getEligibleBadges(userId, request.getUserStats());
             return ResponseEntity.ok(ApiResponse.success(eligibleBadges));
         } catch (Exception e) {
             log.error("Error getting eligible badges", e);
@@ -180,12 +185,12 @@ public class BadgeController {
     }
 
     /**
-     * Get all badges earned by a user
+     * Get all badges earned by current user
      */
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<Badge>>> getUserBadges(@PathVariable Long userId) {
-
-        log.info("Getting badges for user {}", userId);
+    @GetMapping("/my-badges")
+    public ResponseEntity<ApiResponse<List<Badge>>> getMyBadges() {
+        Long userId = AuthenticationService.getCurrentUserId();
+        log.info("Getting badges for current user {}", userId);
 
         try {
             List<Badge> userBadges = badgeService.getUserBadges(userId);
@@ -215,6 +220,8 @@ public class BadgeController {
         }
     }
 
+
+
     /**
      * Delete a badge
      */
@@ -235,4 +242,5 @@ public class BadgeController {
                     .body(ApiResponse.error("Failed to delete badge"));
         }
     }
+
 }
