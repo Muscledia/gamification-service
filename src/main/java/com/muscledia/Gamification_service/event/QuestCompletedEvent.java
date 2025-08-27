@@ -72,6 +72,16 @@ public class QuestCompletedEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     public Duration getCompletionTime() {
         return Duration.between(questStartedAt, completedAt);
     }

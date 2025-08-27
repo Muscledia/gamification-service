@@ -79,4 +79,9 @@ public class UserPrincipal implements UserDetails {
         }
         return false;
     }
+
+    public boolean isAdmin() {
+        return hasRole("ADMIN");
+    }
+
 }

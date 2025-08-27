@@ -92,6 +92,16 @@ public class StreakUpdatedEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     private boolean isValidStreakAction() {
         return switch (streakAction.toUpperCase()) {
             case "INCREASED", "DECREASED", "RESET", "MAINTAINED" -> true;

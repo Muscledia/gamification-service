@@ -46,12 +46,15 @@ public class EventOutboxService {
         try {
             String payload = objectMapper.writeValueAsString(event);
             String topic = determineTopicForEvent(event);
+            String messageKey = event.getUserId() != null ?
+                    event.getUserId().toString() :
+                    event.getEventId(); // Fallback to eventId
 
             EventOutbox outboxEntry = EventOutbox.builder()
                     .eventId(event.getEventId())
                     .eventType(event.getEventType())
                     .topic(topic)
-                    .messageKey(event.getUserId().toString())
+                    .messageKey(messageKey)
                     .payload(payload)
                     .status(EventStatus.PENDING)
                     .userId(event.getUserId())

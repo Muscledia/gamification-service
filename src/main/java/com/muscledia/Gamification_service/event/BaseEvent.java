@@ -1,9 +1,12 @@
 package com.muscledia.Gamification_service.event;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotBlank;
@@ -20,6 +23,8 @@ import java.util.UUID;
  */
 @Data
 @SuperBuilder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "eventType")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = WorkoutCompletedEvent.class, name = "WORKOUT_COMPLETED"),
@@ -33,61 +38,34 @@ import java.util.UUID;
 })
 public abstract class BaseEvent {
 
+    @JsonProperty("userId")
+    private Long userId;
     /**
      * Unique identifier for this event instance
      */
-    @NotBlank
-    @lombok.Builder.Default
-    private String eventId = UUID.randomUUID().toString();
+    @NotBlank(message = "Event ID must not be blank")
+    @JsonProperty("eventId")
+    private String eventId;
 
     /**
      * Timestamp when the event occurred
      */
-    @NotNull
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    @lombok.Builder.Default
-    private Instant timestamp = Instant.now();
-
-    /**
-     * User ID associated with this event
-     */
-    @NotNull
-    private Long userId;
+    @JsonProperty("timestamp")
+    @JsonDeserialize(using = InstantStringDeserializer.class) // Different deserializer for ISO strings
+    private Instant timestamp;
 
     /**
      * Service that generated this event
      */
-    @NotBlank
-    @lombok.Builder.Default
-    private String source = "gamification-service";
+    @JsonProperty("source")
+    private String source;
 
     /**
      * Event version for schema evolution
      */
-    @NotBlank
-    @lombok.Builder.Default
+    @JsonProperty("version")
     private String version = "1.0";
 
-    /**
-     * Default constructor for Jackson
-     */
-    protected BaseEvent() {
-        this.eventId = UUID.randomUUID().toString();
-        this.timestamp = Instant.now();
-        this.source = "gamification-service";
-        this.version = "1.0";
-    }
-
-    /**
-     * Constructor with all fields
-     */
-    protected BaseEvent(String eventId, Instant timestamp, Long userId, String source, String version) {
-        this.eventId = eventId != null ? eventId : UUID.randomUUID().toString();
-        this.timestamp = timestamp != null ? timestamp : Instant.now();
-        this.userId = userId;
-        this.source = source != null ? source : "gamification-service";
-        this.version = version != null ? version : "1.0";
-    }
 
     /**
      * Get the event type for routing and processing
@@ -103,4 +81,18 @@ public abstract class BaseEvent {
      * Create a copy of this event with updated timestamp (for retries)
      */
     public abstract BaseEvent withNewTimestamp();
+
+    // Add this helper method for intensity calculation
+    public abstract double getIntensityScore();
+
+    // Add this helper method for streak eligibility
+    public abstract boolean isStreakEligible();
+
+    /**
+     * Helper method to validate common fields
+     */
+    protected boolean isBaseValid() {
+        return eventId != null && !eventId.trim().isEmpty() &&
+                userId != null;
+    }
 }

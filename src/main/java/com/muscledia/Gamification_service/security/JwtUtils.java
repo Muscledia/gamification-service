@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -20,24 +22,33 @@ public class JwtUtils {
     @Value("${jwt.expiration:86400000}") // Default 24 hours
     private int jwtExpirationMs;
 
-    @Value("${jwt.issuer:muscledia-user-service}")
-    private String expectedIssuer;
+    @Value("${jwt.issuer}")
+    private String issuer;
 
     /**
      * Get signing key from the secret
      */
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        // Compatible with User Service - handles both base64 and raw secret
+        try {
+            // Try base64 decoding first (as your User Service does)
+            return Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
+        } catch (IllegalArgumentException e) {
+            // Fallback to raw bytes if not base64
+            log.debug("Secret is not base64 encoded, using raw bytes");
+            return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        }
     }
 
     /**
      * Validate JWT token
      */
     public boolean validateJwtToken(String authToken) {
+
         try {
             Jwts.parser()
                     .verifyWith(getSigningKey())
-                    .requireIssuer(expectedIssuer)
+                    //.requireIssuer(expectedIssuer)
                     .build()
                     .parseSignedClaims(authToken);
             return true;
@@ -59,80 +70,74 @@ public class JwtUtils {
      * Extract user ID from JWT token
      */
     public Long getUserIdFromJwtToken(String token) {
-        Claims claims = Jwts.parser()
+        Claims claims = extractClaims(token);
+
+        // Try to get userIdLong first (if available)
+        Object userIdLong = claims.get("userIdLong");
+        if (userIdLong instanceof Long) {
+            return (Long) userIdLong;
+        }
+        if (userIdLong instanceof Integer) {
+            return ((Integer) userIdLong).longValue();
+        }
+
+        // Fallback to userId as String and convert
+        Object userId = claims.get("userId");
+        if (userId instanceof String) {
+            try {
+                return Long.valueOf((String) userId);
+            } catch (NumberFormatException e) {
+                log.error("Failed to convert userId string to Long: {}", userId);
+                return null;
+            }
+        }
+        if (userId instanceof Long) {
+            return (Long) userId;
+        }
+        if (userId instanceof Integer) {
+            return ((Integer) userId).longValue();
+        }
+
+        log.warn("Could not extract userId from token. Available claims: {}", claims.keySet());
+        return null;
+    }
+
+
+    public Claims extractClaims(String token) {
+        return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-        Object userIdClaim = claims.get("userId");
-        if (userIdClaim != null) {
-            if (userIdClaim instanceof Number) {
-                return ((Number) userIdClaim).longValue();
-            } else if (userIdClaim instanceof String) {
-                return Long.valueOf((String) userIdClaim);
-            }
-        }
-
-        // Fallback to subject if userId claim is not found
-        String subject = claims.getSubject();
-        if (subject != null) {
-            try {
-                return Long.valueOf(subject);
-            } catch (NumberFormatException e) {
-                log.warn("Subject is not a valid user ID: {}", subject);
-            }
-        }
-
-        throw new IllegalArgumentException("User ID not found in JWT token");
     }
+
 
     /**
      * Extract username from JWT token
      */
     public String getUsernameFromJwtToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        String username = claims.get("username", String.class);
-        if (username == null) {
-            username = claims.get("sub", String.class);
-        }
-        return username;
+        return extractClaims(token).getSubject();
     }
 
-    /**
-     * Extract email from JWT token
-     */
-    public String getEmailFromJwtToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.get("email", String.class);
-    }
 
     /**
      * Extract roles from JWT token
      */
     @SuppressWarnings("unchecked")
     public List<String> getRolesFromJwtToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        Claims claims = extractClaims(token);
 
         Object rolesClaim = claims.get("roles");
         if (rolesClaim instanceof List) {
             return (List<String>) rolesClaim;
         }
-        return List.of(); // Return empty list if no roles found
+        // Fallback to single role if available
+        String singleRole = claims.get("role", String.class);
+        if (singleRole != null) {
+            return List.of(singleRole);
+        }
+
+        return Collections.emptyList();
     }
 
     /**
@@ -140,15 +145,10 @@ public class JwtUtils {
      */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-
+            Claims claims = extractClaims(token);
             return claims.getExpiration().before(new Date());
         } catch (Exception e) {
-            return true; // If we can't parse the token, consider it expired
+            return true;
         }
     }
 

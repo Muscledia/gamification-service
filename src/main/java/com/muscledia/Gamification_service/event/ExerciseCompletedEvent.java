@@ -122,6 +122,16 @@ public class ExerciseCompletedEvent extends BaseEvent {
                 .build();
     }
 
+    @Override
+    public double getIntensityScore() {
+        return 0;
+    }
+
+    @Override
+    public boolean isStreakEligible() {
+        return false;
+    }
+
     /**
      * Calculate total volume for strength exercises
      */
