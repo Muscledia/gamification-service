@@ -11,11 +11,6 @@ spring:
       database: ${MONGO_GAMIFICATION_DATABASE:gamification_db}
       auto-index-creation: true
 
-    redis:
-      host: ${SPRING_REDIS_HOST}
-      port: ${SPRING_REDIS_PORT}
-      password: ${SPRING_REDIS_PASSWORD}
-      timeout: 2000ms
 
   # Kafka Configuration for Event Consuming & Publishing
   kafka:
