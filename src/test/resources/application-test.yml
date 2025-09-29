@@ -1,0 +1,41 @@
+spring:
+  profiles:
+    active: test
+
+  # Use embedded MongoDB for simpler testing
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test-gamification-db
+
+  # Disable MongoDB auto-configuration errors
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.embedded.EmbeddedMongoAutoConfiguration
+
+# JWT Test Configuration
+jwt:
+  secret: testSecretKey123456789012345678901234567890
+  expiration: 86400000
+  issuer: muscledia-user-service-test
+
+# Disable external services for tests
+eureka:
+  client:
+    enabled: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+server:
+  port: 0
+
+logging:
+  level:
+    com.muscledia.Gamification_service: INFO
+    org.springframework.data.mongodb: ERROR
+    org.springframework.security: ERROR

@@ -1,0 +1,110 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: muscledia-gamification-service
+
+  data:
+    mongodb:
+      uri: mongodb://admin:secure_mongo_password_123@mongodb:27017/gamification_db?authSource=admin
+      database: ${MONGO_GAMIFICATION_DATABASE:gamification_db}
+      auto-index-creation: true
+
+
+  # Kafka Configuration for Event Consuming & Publishing
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${KAFKA_GROUP_ID_GAMIFICATION:gamification-service-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.json.trusted.packages: "com.muscledia.*"
+        spring.json.use.type.headers: false
+        # Enable manual acknowledgment for better control
+        enable.auto.commit: false
+        auto.commit.interval.ms: 1000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://service-discovery:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    hostname: gamification-service
+
+jwt:
+  secret: ${JWT_SECRET:81795ad725b2cadd49d27a60438415588db374020a561ae19cafebeef6339655304975b150867b21d3715e341a49271a75a7dde39776e156af0ddad50f5e6ec3}
+  expiration: ${JWT_EXPIRATION:86400000}
+  issuer: ${JWT_ISSUER:muscledia-user-service}
+
+# Gamification Configuration
+gamification:
+  events:
+    processing:
+      enabled: true
+      batch-size: 50
+      retry-attempts: 3
+      dead-letter-enabled: true
+
+  outbox:
+    enabled: true
+    polling-interval: 5000
+    batch-size: 50
+
+  scheduling:
+    enabled: true
+    quest-generation:
+      cron: "0 0 6 * * ?"  # 6 AM daily
+    leaderboard-refresh:
+      cron: "0 */30 * * * ?"  # Every 30 minutes
+
+  cache:
+    leaderboard-ttl: 600000  # 10 minutes
+    user-stats-ttl: 300000   # 5 minutes
+
+# Event Topics Configuration
+kafka:
+  topics:
+    workout-events: ${KAFKA_TOPIC_WORKOUT_EVENTS:workout-events}
+    user-events: ${KAFKA_TOPIC_USER_EVENTS:user-events}
+    gamification-events: ${KAFKA_TOPIC_GAMIFICATION_EVENTS:gamification-events}
+  events:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.muscledia: INFO
+    org.springframework.data.mongodb: INFO
+    org.springframework.data.redis: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
