@@ -33,7 +33,6 @@ import org.springframework.validation.annotation.Validated;
  */
 @RestController
 @RequestMapping("/api/badges")
-@RequiredArgsConstructor
 @Slf4j
 @Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -42,6 +41,19 @@ import org.springframework.validation.annotation.Validated;
 public class BadgeController {
 
     private final BadgeService badgeService;
+
+
+    public BadgeController(BadgeService badgeService) {
+        this.badgeService = badgeService;
+        log.info("BadgeController SUCCESSFULLY LOADED!");
+        log.info("Base path: /api/badges");
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        log.info("Health check endpoint hit!");
+        return ResponseEntity.ok("Badge Controller is loaded!");
+    }
 
     /**
      * Create a new badge

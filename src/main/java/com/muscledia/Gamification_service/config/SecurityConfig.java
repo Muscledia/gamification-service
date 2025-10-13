@@ -48,6 +48,13 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
 
+                        // DD THESE LINES - Health check endpoints
+                        // FIXED: Specific health check patterns
+                        .requestMatchers("/api/badges/health").permitAll()
+                        .requestMatchers("/api/gamification/health").permitAll()
+                        .requestMatchers("/api/quests/health").permitAll()
+                        .requestMatchers("/api/champions/health").permitAll()
+
                         // Admin endpoints - require ADMIN role
                         .requestMatchers("/api/*/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/quests/process-expired").hasRole("ADMIN")
