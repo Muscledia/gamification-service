@@ -48,18 +48,14 @@ public class WorkoutCompletedEventConsumer {
      * - Triggers achievement processing
      * - Updates user gamification profile
      */
-    @KafkaListener(
-            topics = "${kafka.topics.workout-events:workout-events}",
-            groupId = "${kafka.consumer.group-id:gamification-service-group}"
-    )
     public void handleWorkoutCompleted(
-            @Payload Object eventObject, // CHANGED: Use Object to match factory
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            ConsumerRecord<String, Object> record,
             Acknowledgment acknowledgment) {
 
         try {
-            log.info("RAW EVENT RECEIVED: class={}, content={}",
-                    eventObject.getClass().getSimpleName(), eventObject);
+            Object eventObject = record.value(); // Extract the actual payload
+
+            log.info("RAW EVENT RECEIVED: class={}", eventObject.getClass().getSimpleName());
 
             WorkoutCompletedEvent event = null;
 
@@ -93,7 +89,7 @@ public class WorkoutCompletedEventConsumer {
                 return;
             }
 
-            log.info("ROCESSING WORKOUT EVENT: userId={}, workoutId={}, duration={}min",
+            log.info("PROCESSING WORKOUT EVENT: userId={}, workoutId={}, duration={}min",
                     event.getUserId(), event.getWorkoutId(), event.getDurationMinutes());
 
             // Validate event before processing
@@ -102,7 +98,6 @@ public class WorkoutCompletedEventConsumer {
                 acknowledgment.acknowledge();
                 return;
             }
-
 
             // CORE IMPLEMENTATION: Process achievements
             workoutEventHandler.handleWorkoutCompleted(event);
@@ -114,29 +109,44 @@ public class WorkoutCompletedEventConsumer {
 
         } catch (Exception e) {
             log.error("GAMIFICATION FAILURE: Failed to process WorkoutCompletedEvent: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to process workout completion event", e);
+            acknowledgment.acknowledge(); // Acknowledge to prevent infinite retries
         }
     }
 
     /**
      * Handle consumption errors
      */
-    @org.springframework.kafka.annotation.KafkaListener(
+    @KafkaListener(
             topics = "${kafka.topics.workout-events:workout-events}.DLT",
             groupId = "${kafka.consumer.group-id:gamification-service-group}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleDeadLetterEvent(
-            @Payload WorkoutCompletedEvent event,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            ConsumerRecord<String, WorkoutCompletedEvent> record) {
+            ConsumerRecord<String, Object> record,
+            Acknowledgment acknowledgment) {
 
-        log.error("Dead Letter Queue: WorkoutCompletedEvent for user {} failed all retries. Manual intervention required.",
-                event.getUserId());
+        try {
+            Object eventObject = record.value();
 
-        // In production, you might:
-        // 1. Store in a dead letter table
-        // 2. Send alert to monitoring system
-        // 3. Create manual review task
+            if (eventObject instanceof Map) {
+                Map<String, Object> eventMap = (Map<String, Object>) eventObject;
+                Long userId = (Long) eventMap.get("userId");
+
+                log.error("Dead Letter Queue: WorkoutCompletedEvent for user {} failed all retries. Manual intervention required.", userId);
+            } else {
+                log.error("Dead Letter Queue: Unprocessable WorkoutCompletedEvent received: {}", eventObject.getClass());
+            }
+
+            acknowledgment.acknowledge();
+
+            // In production, you might:
+            // 1. Store in a dead letter table
+            // 2. Send alert to monitoring system
+            // 3. Create manual review task
+
+        } catch (Exception e) {
+            log.error("Failed to process dead letter event: {}", e.getMessage(), e);
+            acknowledgment.acknowledge();
+        }
     }
 }

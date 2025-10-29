@@ -276,7 +276,8 @@ public class KafkaConfig {
      */
     private String getTypeMapping() {
         return  "userRegistered:com.muscledia.Gamification_service.event.UserRegisteredEvent," +
-                "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent";
+                "workout:com.muscledia.Gamification_service.event.WorkoutCompletedEvent," +
+                "personalRecord:com.muscledia.Gamification_service.event.PersonalRecordEvent";
     }
 }
 

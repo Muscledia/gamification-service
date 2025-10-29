@@ -60,7 +60,7 @@ gamification:
       batch-size: ${EVENT_BATCH_SIZE:50}
   duplicate:
     consumer:
-      enabled: false # Disable the duplicate consumer
+      enabled: true # Disable the duplicate consumer
 
   scheduling:
     enabled: ${SCHEDULING_ENABLED:false} # MVP: false, Prod: true
