@@ -1,10 +1,15 @@
 package com.muscledia.Gamification_service.model.enums;
 
+/**
+ * PURPOSE: Define challenge objective types (aligned with existing system)
+ * RESPONSIBILITY: Type safety for challenge objectives
+ * COUPLING: None - pure enumeration
+ */
 public enum ObjectiveType {
-    REPS,
-    DURATION, // e.g., minutes of activity
-    EXERCISES, // e.g., number of unique exercises completed
-    WEIGHT_LIFTED, // e.g., total weight lifted in kg/lbs
-    TIME_BASED, // e.g., time-based challenges
-    ACHIEVEMENT_BASED // e.g., streak maintenance, milestone achievements
+    REPS,                    // Total reps completed
+    DURATION,                // Minutes of activity
+    EXERCISES,               // Number of unique exercises completed
+    WEIGHT_LIFTED,           // Total weight lifted in kg/lbs
+    TIME_BASED,              // Time-based challenges
+    ACHIEVEMENT_BASED        // Streak maintenance, milestone achievements
 }
