@@ -26,6 +26,7 @@ public class QuestService {
 
     private final QuestRepository questRepository;
     private final UserGamificationProfileRepository userProfileRepository;
+    private final RewardProcessor rewardProcessor;
 
     /**
      * Create a new quest
@@ -139,7 +140,7 @@ public class QuestService {
     }
 
     /**
-     * Update quest progress for a user
+     * Update quest progress for a user - REFACTORED to use RewardProcessor
      */
     @Transactional
     public UserQuestProgress updateQuestProgress(Long userId, String questId, int progressIncrement) {
@@ -184,7 +185,7 @@ public class QuestService {
             questProgress.setStatus(QuestStatus.COMPLETED);
             questProgress.setCompletionDate(Instant.now());
 
-            // Award quest rewards
+            // REFACTORED: Use RewardProcessor instead of direct manipulation
             awardQuestRewards(userProfile, quest);
 
             log.info("Quest {} completed by user {}", questId, userId);
@@ -197,7 +198,7 @@ public class QuestService {
     }
 
     /**
-     * Complete a quest for a user
+     * Complete a quest for a user - REFACTORED to use RewardProcessor
      */
     @Transactional
     public UserGamificationProfile completeQuest(Long userId, String questId) {
@@ -209,25 +210,19 @@ public class QuestService {
         Quest quest = questRepository.findById(questId)
                 .orElseThrow(() -> new IllegalArgumentException("Quest not found: " + questId));
 
-        // Award experience points
-        userProfile.setPoints(userProfile.getPoints() + quest.getPointsReward());
+        // REFACTORED: Use RewardProcessor instead of direct point manipulation
+        rewardProcessor.awardPoints(userId, quest.getPointsReward());
 
-        // Award experience (if you have an experience system)
-        // userProfile.setExperience(userProfile.getExperience() +
-        // quest.getExpReward());
-
-        // Check for level up
-        int newLevel = calculateLevel(userProfile.getPoints());
-        if (newLevel > userProfile.getLevel()) {
-            userProfile.setLevel(newLevel);
-            userProfile.setLastLevelUpDate(Instant.now());
-            log.info("User {} leveled up to level {} from quest completion", userId, newLevel);
+        // Update quest progress to completed
+        List<UserQuestProgress> userQuests = userProfile.getQuests();
+        if (userQuests != null) {
+            userQuests.stream()
+                    .filter(q -> questId.equals(q.getQuestId()))
+                    .forEach(q -> {
+                        q.setStatus(QuestStatus.COMPLETED);
+                        q.setCompletionDate(Instant.now());
+                    });
         }
-
-        // Mark quest as completed (this would be implemented when quest progress is
-        // properly modeled)
-        // questProgress.setStatus(QuestStatus.COMPLETED);
-        // questProgress.setCompletionDate(Instant.now());
 
         UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
         log.info("Quest {} completed for user {}", questId, userId);
@@ -403,24 +398,34 @@ public class QuestService {
         return 10 + ((points - 5500) / 1000);
     }
 
+
+
     /**
-     * Award quest completion rewards to user
+     * Award quest completion rewards to user - REFACTORED to use RewardProcessor
      */
     private void awardQuestRewards(UserGamificationProfile userProfile, Quest quest) {
-        // Award points
-        int currentPoints = userProfile.getPoints();
-        userProfile.setPoints(currentPoints + quest.getPointsReward());
+        try {
+            // REFACTORED: Use RewardProcessor instead of direct manipulation
+            rewardProcessor.awardPoints(userProfile.getUserId(), quest.getPointsReward());
 
-        // Calculate new level
-        int newLevel = calculateLevel(userProfile.getPoints());
-        if (newLevel > userProfile.getLevel()) {
-            userProfile.setLevel(newLevel);
-            userProfile.setLastLevelUpDate(Instant.now());
-            log.info("User {} leveled up to {} from quest completion",
-                    userProfile.getUserId(), newLevel);
+            // FIX: Use the convenience method and proper null checking
+            if (quest.hasUnlockedQuest()) {
+                try {
+                    rewardProcessor.unlockQuest(userProfile.getUserId(), quest.getUnlockedQuestId());
+                    log.info("Unlocked follow-up quest {} for user {} after completing {}",
+                            quest.getUnlockedQuestId(), userProfile.getUserId(), quest.getName());
+                } catch (Exception e) {
+                    log.warn("Failed to unlock follow-up quest {} for user {}: {}",
+                            quest.getUnlockedQuestId(), userProfile.getUserId(), e.getMessage());
+                }
+            }
+
+            log.info("Awarded {} points to user {} for completing quest {}",
+                    quest.getPointsReward(), userProfile.getUserId(), quest.getName());
+
+        } catch (Exception e) {
+            log.error("Failed to award quest rewards to user {}: {}",
+                    userProfile.getUserId(), e.getMessage());
         }
-
-        log.info("Awarded {} points to user {} for completing quest {}",
-                quest.getPointsReward(), userProfile.getUserId(), quest.getName());
     }
 }

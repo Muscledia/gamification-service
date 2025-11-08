@@ -21,6 +21,7 @@ import java.time.Instant;
 public class AchievementService {
 
     private final UserGamificationService userGamificationService;
+    private final RewardProcessor rewardProcessor;
 
     /**
      * Process workout completion and award achievements
@@ -161,7 +162,7 @@ public class AchievementService {
     }
 
     /**
-     * Award a badge directly to the user profile
+     * Award a badge - REFACTORED to use RewardProcessor
      */
     private void awardBadge(UserGamificationProfile userProfile, String badgeId,
                             String badgeName, String description, int bonusPoints) {
@@ -172,7 +173,7 @@ public class AchievementService {
                             .anyMatch(badge -> badgeId.equals(badge.getBadgeId()));
 
             if (!alreadyHas) {
-                // Create new badge
+                // Create new badge for profile tracking
                 UserBadge newBadge = UserBadge.builder()
                         .badgeId(badgeId)
                         .badgeName(badgeName)
@@ -182,11 +183,11 @@ public class AchievementService {
                         .earnedAt(Instant.now())
                         .build();
 
-                // Add badge to profile
+                // Add badge to profile (for tracking)
                 userProfile.addBadge(newBadge);
 
-                // Award bonus points
-                userProfile.setPoints(userProfile.getPoints() + bonusPoints);
+                // REFACTORED: Use RewardProcessor for points instead of direct manipulation
+                rewardProcessor.awardPoints(userProfile.getUserId(), bonusPoints);
 
                 log.info("NEW ACHIEVEMENT: User {} earned '{}' badge with {} bonus points",
                         userProfile.getUserId(), badgeName, bonusPoints);
