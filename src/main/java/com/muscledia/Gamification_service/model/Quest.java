@@ -50,6 +50,9 @@ public class Quest {
 
     private boolean repeatable; // True if the quest can be done multiple times
 
+    @Size(max = 50, message = "Unlocked quest ID must not exceed 50 characters")
+    private String unlockedQuestId; // Quest to unlock when this quest is completed
+
     // Reference to exercise_id from workout-service's DB (if quest is
     // exercise-specific)
     @Size(max = 50, message = "Exercise ID must not exceed 50 characters")
@@ -65,4 +68,9 @@ public class Quest {
     private int requiredLevel; // Minimum user level to be eligible for this quest
 
     private Instant createdAt;
+
+    // ADD CONVENIENCE METHOD FOR CHECKING IF QUEST UNLOCKS ANOTHER
+    public boolean hasUnlockedQuest() {
+        return unlockedQuestId != null && !unlockedQuestId.trim().isEmpty();
+    }
 }
