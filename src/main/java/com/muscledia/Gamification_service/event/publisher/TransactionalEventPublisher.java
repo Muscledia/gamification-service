@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
-public class TransactionalEventPublisher {
+public class TransactionalEventPublisher implements EventPublisher {
 
     private final EventOutboxService eventOutboxService;
 
@@ -135,10 +135,31 @@ public class TransactionalEventPublisher {
         }
     }
 
-    /**
-     * Get publishing statistics for monitoring
-     */
-    public EventOutboxService.OutboxStatistics getStatistics() {
-        return eventOutboxService.getStatistics();
+    // ADD THESE METHODS TO IMPLEMENT THE INTERFACE
+    @Override
+    @Transactional
+    public void publishChallengeStarted(ChallengeStartedEvent event) {
+        validateEvent(event);
+        eventOutboxService.storeForPublishing(event);
+        log.info("Stored challenge started event {} for user {} in outbox",
+                event.getEventId(), event.getUserId());
+    }
+
+    @Override
+    @Transactional
+    public void publishChallengeProgress(ChallengeProgressEvent event) {
+        validateEvent(event);
+        eventOutboxService.storeForPublishing(event);
+        log.info("Stored challenge progress event {} for user {} in outbox",
+                event.getEventId(), event.getUserId());
+    }
+
+    @Override
+    @Transactional
+    public void publishChallengeCompleted(ChallengeCompletedEvent event) {
+        validateEvent(event);
+        eventOutboxService.storeForPublishing(event);
+        log.info("Stored challenge completed event {} for user {} in outbox",
+                event.getEventId(), event.getUserId());
     }
 }

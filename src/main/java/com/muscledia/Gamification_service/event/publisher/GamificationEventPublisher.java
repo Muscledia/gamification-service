@@ -143,4 +143,5 @@ public class GamificationEventPublisher {
             return false;
         }
     }
+
 }

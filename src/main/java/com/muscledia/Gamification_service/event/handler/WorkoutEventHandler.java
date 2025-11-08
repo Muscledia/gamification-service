@@ -2,6 +2,7 @@ package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import com.muscledia.Gamification_service.service.AchievementService;
+import com.muscledia.Gamification_service.service.ProgressService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +27,10 @@ public class WorkoutEventHandler {
 
     private final UserGamificationService userGamificationService;
     private final AchievementService achievementService;
+    private final ProgressService progressService;
 
     /**
-     * CORE USER STORY IMPLEMENTATION: Process workout completion for achievements
+     * CORE USER STORY IMPLEMENTATION: Process workout completion for achievements and challenges
      */
     @Transactional
     public void handleWorkoutCompleted(WorkoutCompletedEvent event) {
@@ -45,10 +47,13 @@ public class WorkoutEventHandler {
             // 3. Update workout streak
             updateWorkoutStreak(event);
 
-            // 4. Process achievements (CORE USER STORY)
+            // 4. Process achievements (EXISTING FUNCTIONALITY)
             achievementService.processWorkoutAchievements(event);
 
-            log.info("SUCCESS: Workout completion processed for user {} - achievements updated",
+            // 5. Process challenge progress (NEW FUNCTIONALITY)
+            progressService.updateChallengeProgress(event);
+
+            log.info("SUCCESS: Workout completion processed for user {} - achievements and challenges updated",
                     event.getUserId());
 
         } catch (Exception e) {
