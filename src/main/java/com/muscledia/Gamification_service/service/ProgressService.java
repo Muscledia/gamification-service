@@ -26,6 +26,8 @@ public class ProgressService {
     private final UserChallengeRepository userChallengeRepository;
     private final ChallengeRepository challengeRepository;
     private final RewardProcessor rewardProcessor;
+    private final UserJourneyProfileService userJourneyService;
+    private final ChallengeProgressionService challengeProgressionService;
 
     /**
      * Update challenge progress from workout completion event
@@ -119,6 +121,19 @@ public class ProgressService {
             // Unlock quest if specified
             if (challenge.getUnlockedQuestId() != null) {
                 rewardProcessor.unlockQuest(userChallenge.getUserId(), challenge.getUnlockedQuestId());
+            }
+
+            // NEW: Update user journey progression
+            userJourneyService.recordChallengeCompletion(
+                    userChallenge.getUserId(), challenge);
+
+            // NEW: Auto-unlock next challenges in progression
+            List<Challenge> unlockedChallenges = challengeProgressionService
+                    .unlockNextChallenges(userChallenge.getUserId(), challenge);
+
+            if (!unlockedChallenges.isEmpty()) {
+                log.info("Unlocked {} new challenges for user {}",
+                        unlockedChallenges.size(), userChallenge.getUserId());
             }
 
             log.info("Challenge rewards processed for user {}: {} points awarded",
