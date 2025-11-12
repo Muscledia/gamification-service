@@ -20,6 +20,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -80,6 +84,21 @@ public class Challenge {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private List<String> prerequisiteChallengeIds;
+    private List<String> unlocksChallengeIds;
+    private Set<String> userJourneyTags; // "strength", "endurance", "beginner"
+    private String journeyPhase; // "foundation", "building", "mastery"
+
+    // ADD PERSONALIZATION FIELDS
+    private String templateId; // Reference to template used
+    private Double personalizedDifficultyMultiplier = 1.0;
+    private Map<String, Object> personalizationData; // User-specific adjustments
+
+    // ADD ANALYTICS FIELDS
+    private int expectedCompletionRate = 70; // Target completion rate %
+    private int actualCompletionCount = 0;
+    private int attemptCount = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -103,5 +122,35 @@ public class Challenge {
 
     public Duration getDuration() {
         return Duration.between(startDate, endDate);
+    }
+
+    // ADD BUSINESS METHODS
+    public boolean hasPrerequisites() {
+        return prerequisiteChallengeIds != null && !prerequisiteChallengeIds.isEmpty();
+    }
+
+    public boolean isEligibleFor(UserJourneyProfile userJourney) {
+        // Check level requirement
+        if (getDifficultyLevel().ordinal() > userJourney.getCurrentLevel() / 3) {
+            return false;
+        }
+
+        // Check prerequisites
+        if (hasPrerequisites()) {
+            return userJourney.getCompletedChallengeTemplates()
+                    .containsAll(prerequisiteChallengeIds);
+        }
+
+        // Check journey alignment
+        if (!getUserJourneyTags().isEmpty()) {
+            return !Collections.disjoint(getUserJourneyTags(),
+                    userJourney.getActiveJourneyTags());
+        }
+
+        return true;
+    }
+
+    public double getCurrentCompletionRate() {
+        return attemptCount > 0 ? (double) actualCompletionCount / attemptCount * 100 : 0;
     }
 }
