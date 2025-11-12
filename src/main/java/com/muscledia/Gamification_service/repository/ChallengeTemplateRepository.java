@@ -22,4 +22,7 @@ public interface ChallengeTemplateRepository extends MongoRepository<ChallengeTe
     List<ChallengeTemplate> findByTypeAndDifficulty(ChallengeType type, DifficultyLevel difficulty);
 
     List<ChallengeTemplate> findByActiveTrue();
+
+    @Query("{'type': ?0, 'journeyPhase': ?1, 'active': true}")
+    List<ChallengeTemplate> findByTypeAndPhase(ChallengeType type, String phase);
 }
