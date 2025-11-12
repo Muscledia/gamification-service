@@ -7,6 +7,8 @@ import com.muscledia.Gamification_service.exception.ChallengeNotActiveException;
 import com.muscledia.Gamification_service.exception.ChallengeNotFoundException;
 import com.muscledia.Gamification_service.model.Challenge;
 import com.muscledia.Gamification_service.model.UserChallenge;
+import com.muscledia.Gamification_service.model.UserJourneyProfile;
+import com.muscledia.Gamification_service.model.UserPerformanceMetrics;
 import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
 import com.muscledia.Gamification_service.model.enums.ChallengeType;
 import com.muscledia.Gamification_service.model.enums.DifficultyLevel;
@@ -36,19 +38,28 @@ public class ChallengeService {
     private final ChallengeRepository challengeRepository;
     private final UserChallengeRepository userChallengeRepository;
     private final EventPublisher eventPublisher;
+    // NEW DEPENDENCIES
+    private final UserJourneyProfileService userJourneyService;
+    private final ChallengeProgressionService challengeProgressionService;
+    private final UserPerformanceAnalyzer performanceAnalyzer;
+
 
     /**
-     * Get available challenges for user based on difficulty
+     * ENHANCED: Get challenges based on user progression
      */
     public List<Challenge> getAvailableChallenges(Long userId, ChallengeType type) {
         log.info("Getting {} challenges for user {}", type, userId);
 
-        DifficultyLevel userDifficulty = determineUserDifficulty(userId);
-        List<Challenge> allChallenges = challengeRepository.findByTypeAndActiveTrue(type);
+        // NEW: Get user's journey profile for personalized challenges
+        UserJourneyProfile userJourney = userJourneyService.getUserJourney(userId);
 
-        return allChallenges.stream()
-                .filter(challenge -> challenge.getDifficultyLevel() == userDifficulty)
+        // NEW: Generate personalized challenges instead of just filtering by difficulty
+        List<Challenge> personalizedChallenges = challengeProgressionService
+                .generatePersonalizedChallenges(userId, type, userJourney);
+
+        return personalizedChallenges.stream()
                 .filter(challenge -> !userAlreadyStarted(userId, challenge.getId()))
+                .limit(5) // Don't overwhelm user
                 .collect(Collectors.toList());
     }
 
@@ -80,10 +91,18 @@ public class ChallengeService {
         return userChallengeRepository.findActiveByUserId(userId);
     }
 
-    // Private helper methods
+    // ENHANCED: Update difficulty determination
     private DifficultyLevel determineUserDifficulty(Long userId) {
-        // Simple logic - could be enhanced
-        return DifficultyLevel.BEGINNER; // Placeholder
+        UserJourneyProfile journey = userJourneyService.getUserJourney(userId);
+        UserPerformanceMetrics performance = performanceAnalyzer.analyzeUser(userId);
+
+        // Dynamic difficulty based on completion rate and level
+        if (performance.getRecentCompletionRate() > 0.8 && journey.getCurrentLevel() > 5) {
+            return DifficultyLevel.INTERMEDIATE;
+        } else if (performance.getRecentCompletionRate() > 0.9 && journey.getCurrentLevel() > 10) {
+            return DifficultyLevel.ADVANCED;
+        }
+        return DifficultyLevel.BEGINNER;
     }
 
     private boolean userAlreadyStarted(Long userId, String challengeId) {
