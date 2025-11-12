@@ -53,6 +53,10 @@ gamification:
   mongodb:
     enabled: ${MONGODB_ENABLED:true} # MVP: false for testing, Prod: true
 
+  challenge-templates:
+    auto-load: true          # Enable auto-loading on startup
+    reload-on-startup: false # Only reload if no templates exist
+
   # Features (MVP: events disabled for testing without MongoDB)
   events:
     processing:
@@ -93,6 +97,7 @@ management:
 logging:
   level:
     com.muscledia.Gamification_service: ${LOG_LEVEL:INFO}
+    com.muscledia.Gamification_service.service.ChallengeTemplateLoader: DEBUG
     org.springframework: WARN
     com.muscledia.Gamification_service.event: DEBUG
     org.springframework.kafka: INFO
@@ -109,24 +114,4 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
-# =======================================================
-# DEPLOYMENT PROFILES - Override with Environment Variables
-# =======================================================
-#
-# MVP DEPLOYMENT (Default - $0 infrastructure cost):
-# - No environment variables needed
-# - Uses MongoDB only
-# - In-memory caching
-# - No background jobs
-# - No Kafka events
-#
-# PRODUCTION DEPLOYMENT:
-# export REDIS_ENABLED=true
-# export CACHE_TYPE=redis
-# export EVENTS_ENABLED=true
-# export SCHEDULING_ENABLED=true
-# export EUREKA_ENABLED=true
-# export KAFKA_SERVERS=your-kafka-cluster:9092
-# export REDIS_HOST=your-redis-cluster
-#
-# =======================================================
+
