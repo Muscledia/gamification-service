@@ -1,0 +1,46 @@
+# Intermediate Challenge Templates: Skill Development
+template_group: "skill_development"
+journey_phase: "building"
+category: SKILL
+
+templates:
+  exercise_variety:
+    id: "exercise_variety"
+    name: "Exercise Explorer"
+    description: "Try 15 different exercises this week"
+    type: WEEKLY
+    objective: EXERCISES
+    difficulty_scaling:
+      INTERMEDIATE: { target: 15, points: 400, exp: 100 }
+      ADVANCED: { target: 20, points: 500, exp: 125 }
+    duration_days: 7
+    journey_tags: ["skill", "variety", "exploration"]
+    prerequisites: ["compound_master"]
+    unlocks: ["movement_specialist"]
+
+  form_perfectionist:
+    id: "form_perfectionist"
+    name: "Form Perfectionist"
+    description: "Complete workouts with perfect form rating"
+    type: WEEKLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 5, points: 600, exp: 150 }  # 5 perfect form workouts
+    duration_days: 14
+    journey_tags: ["skill", "form", "technique"]
+    prerequisites: ["exercise_variety"]
+    unlocks: ["technique_master"]
+    quality_focus: true
+
+  balance_challenge:
+    id: "balance_challenge"
+    name: "Balance Master"
+    description: "Master balance-focused exercises and holds"
+    type: WEEKLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 3, points: 350, exp: 85 }  # 3 balance achievements
+    duration_days: 7
+    journey_tags: ["skill", "balance", "stability"]
+    exercise_focus: ["single_leg", "balance_holds", "stability"]
+    unlocks: ["functional_athlete"]

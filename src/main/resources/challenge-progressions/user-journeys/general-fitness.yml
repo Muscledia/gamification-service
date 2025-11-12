@@ -1,0 +1,48 @@
+# User Journey: General Fitness
+journey_id: "general_fitness"
+name: "Complete Fitness Journey"
+description: "Balanced approach to overall health and fitness"
+
+phases:
+  foundation:
+    name: "Fitness Foundation"
+    level_range: [1, 6]
+    duration_weeks: 6
+    key_objectives:
+      - Build exercise habit
+      - Try different activities
+      - Basic movement patterns
+    success_criteria:
+      - Exercise 3x per week
+      - Try 10 different exercises
+      - Complete beginner programs
+
+  building:
+    name: "Fitness Development"
+    level_range: [7, 15]
+    duration_weeks: 10
+    key_objectives:
+      - Balanced training approach
+      - Strength + cardio combination
+      - Skill development
+    success_criteria:
+      - Complete mixed workouts
+      - Achieve balanced PRs
+      - Master fundamental skills
+
+  mastery:
+    name: "Fitness Mastery"
+    level_range: [16, 25]
+    duration_weeks: 16
+    key_objectives:
+      - Advanced fitness goals
+      - Specialized training
+      - Leadership development
+    success_criteria:
+      - Complete advanced challenges
+      - Demonstrate expertise
+      - Inspire community
+
+preferred_challenge_types: [DAILY, WEEKLY]
+preferred_objectives: [EXERCISES, DURATION, REPS]
+progression_multiplier: 1.1

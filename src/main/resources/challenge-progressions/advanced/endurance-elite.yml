@@ -1,0 +1,52 @@
+# Advanced Challenge Templates: Elite Endurance
+template_group: "endurance_elite"
+journey_phase: "mastery"
+category: CARDIO
+
+templates:
+  ultra_endurance:
+    id: "ultra_endurance"
+    name: "Ultra Endurance"
+    description: "Complete 2+ hours of continuous exercise"
+    type: WEEKLY
+    objective: DURATION
+    difficulty_scaling:
+      ADVANCED: { target: 120, points: 1000, exp: 250 }   # 2 hours
+      ELITE: { target: 180, points: 1500, exp: 375 }     # 3 hours
+    duration_days: 14
+    journey_tags: ["endurance", "ultra", "mental_toughness"]
+    prerequisites: ["endurance_master"]
+    unlocks: ["endurance_legend"]
+    recovery_recommended: 48  # hours
+
+  vo2_max_master:
+    id: "vo2_max_master"
+    name: "VO2 Max Master"
+    description: "Achieve and maintain elite cardiovascular fitness"
+    type: MONTHLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      ADVANCED: { target: 1, points: 1200, exp: 300 }
+      ELITE: { target: 1, points: 1600, exp: 400 }
+    duration_days: 30
+    journey_tags: ["endurance", "vo2_max", "elite_fitness"]
+    prerequisites: ["ultra_endurance"]
+    unlocks: ["cardio_legend"]
+    requires_testing: true
+    milestone: true
+
+  marathon_equivalent:
+    id: "marathon_equivalent"
+    name: "Marathon Equivalent"
+    description: "Complete marathon distance equivalent in your preferred cardio"
+    type: MONTHLY
+    objective: DURATION
+    difficulty_scaling:
+      ADVANCED: { target: 240, points: 1500, exp: 375 }   # ~4 hour marathon pace
+      ELITE: { target: 180, points: 2000, exp: 500 }     # ~3 hour marathon pace
+    duration_days: 60
+    journey_tags: ["endurance", "marathon", "distance"]
+    prerequisites: ["vo2_max_master"]
+    unlocks: ["ultra_legend"]
+    distance_equivalent: "42.2km"
+    legendary: true

@@ -1,0 +1,55 @@
+# Advanced Challenge Templates: Strength Mastery
+template_group: "strength_mastery"
+journey_phase: "mastery"
+category: STRENGTH
+
+templates:
+  elite_lifter:
+    id: "elite_lifter"
+    name: "Elite Lifter"
+    description: "Achieve elite strength ratios for your body weight"
+    type: MONTHLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      ADVANCED: { target: 3, points: 1500, exp: 375 }    # Elite ratios in 3 lifts
+      ELITE: { target: 5, points: 2000, exp: 500 }      # 5 elite ratios
+    duration_days: 60
+    journey_tags: ["strength", "elite", "mastery"]
+    prerequisites: ["powerlifter"]
+    unlocks: ["strength_legend"]
+    elite_ratios:
+      squat: 2.0    # 2x body weight
+      deadlift: 2.5 # 2.5x body weight
+      bench: 1.5   # 1.5x body weight
+    milestone: true
+    legendary: true
+
+  powerlifter:
+    id: "powerlifter"
+    name: "Powerlifter"
+    description: "Total 4x your body weight across squat, bench, deadlift"
+    type: MONTHLY
+    objective: WEIGHT_LIFTED
+    difficulty_scaling:
+      ADVANCED: { target: 4.0, points: 1200, exp: 300 }  # 4x bodyweight total
+      ELITE: { target: 5.0, points: 1600, exp: 400 }    # 5x bodyweight total
+    duration_days: 45
+    journey_tags: ["strength", "powerlifting", "total"]
+    prerequisites: ["compound_master"]
+    unlocks: ["elite_lifter"]
+    calculation: "bodyweight_multiplier"
+
+  strength_endurance:
+    id: "strength_endurance"
+    name: "Strength Endurance"
+    description: "Complete high-rep sets with challenging weights"
+    type: WEEKLY
+    objective: REPS
+    difficulty_scaling:
+      ADVANCED: { target: 500, points: 800, exp: 200 }   # 500 total reps
+      ELITE: { target: 750, points: 1000, exp: 250 }    # 750 total reps
+    duration_days: 14
+    journey_tags: ["strength", "endurance", "volume"]
+    prerequisites: ["elite_lifter"]
+    unlocks: ["iron_warrior"]
+    minimum_weight_percentage: 70  # 70% of 1RM

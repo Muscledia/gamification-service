@@ -1,0 +1,48 @@
+# Intermediate Challenge Templates: Endurance Building
+template_group: "endurance_building"
+journey_phase: "building"
+category: CARDIO
+
+templates:
+  distance_goal:
+    id: "distance_goal"
+    name: "Distance Goal"
+    description: "Complete equivalent of 5K distance in cardio"
+    type: WEEKLY
+    objective: DURATION
+    difficulty_scaling:
+      INTERMEDIATE: { target: 180, points: 500, exp: 125 }  # ~30min 5K pace
+      ADVANCED: { target: 150, points: 600, exp: 150 }     # Faster pace
+    duration_days: 7
+    journey_tags: ["endurance", "distance", "cardio"]
+    prerequisites: ["cardio_consistency"]
+    unlocks: ["endurance_master"]
+    measurement_note: "Time to complete 5K equivalent"
+
+  interval_training:
+    id: "interval_training"
+    name: "Interval Master"
+    description: "Complete 5 high-intensity interval training sessions"
+    type: WEEKLY
+    objective: TIME_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 5, points: 450, exp: 110 }
+      ADVANCED: { target: 7, points: 550, exp: 135 }
+    duration_days: 14
+    journey_tags: ["endurance", "HIIT", "intensity"]
+    prerequisites: ["distance_goal"]
+    unlocks: ["hiit_master"]
+
+  heart_rate_zones:
+    id: "heart_rate_zones"
+    name: "Heart Rate Zones"
+    description: "Train in different heart rate zones for optimal fitness"
+    type: WEEKLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 4, points: 350, exp: 85 }  # 4 different zones
+    duration_days: 10
+    journey_tags: ["endurance", "heart_rate", "zones"]
+    prerequisites: ["interval_training"]
+    unlocks: ["cardio_scientist"]
+    technical_focus: true

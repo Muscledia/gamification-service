@@ -1,0 +1,51 @@
+# User Journey: Strength-Focused Training
+journey_id: "strength_focused"
+name: "Strength Builder Journey"
+description: "Progressive strength training from beginner to expert"
+
+phases:
+  foundation:
+    name: "Strength Foundation"
+    level_range: [1, 5]
+    duration_weeks: 4
+    description: "Build basic strength habits and form"
+    key_objectives:
+      - Learn proper form
+      - Establish workout consistency
+      - Build base strength
+    success_criteria:
+      - Complete 15 strength workouts
+      - Master 5 basic exercises
+      - Achieve 7-day workout streak
+
+  building:
+    name: "Strength Building"
+    level_range: [6, 12]
+    duration_weeks: 8
+    description: "Progressive overload and compound movements"
+    key_objectives:
+      - Increase weights consistently
+      - Master compound movements
+      - Build workout intensity
+    success_criteria:
+      - Complete 30 strength workouts
+      - Achieve 3 personal records
+      - Lift total bodyweight across big 3
+
+  mastery:
+    name: "Strength Mastery"
+    level_range: [13, 20]
+    duration_weeks: 12
+    description: "Advanced techniques and elite performance"
+    key_objectives:
+      - Advanced training techniques
+      - Competition-level lifts
+      - Mentor other users
+    success_criteria:
+      - Complete 50 advanced workouts
+      - Achieve elite strength ratios
+      - Complete advanced techniques
+
+preferred_challenge_types: [WEEKLY, MONTHLY]
+preferred_objectives: [WEIGHT_LIFTED, REPS, EXERCISES]
+progression_multiplier: 1.2

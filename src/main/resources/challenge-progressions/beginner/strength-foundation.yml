@@ -1,0 +1,46 @@
+# Beginner Challenge Templates: Strength Foundation
+template_group: "strength_foundation"
+journey_phase: "foundation"
+category: STRENGTH
+
+templates:
+  bodyweight_basics:
+    id: "bodyweight_basics"
+    name: "Bodyweight Basics"
+    description: "Master basic bodyweight movements"
+    type: WEEKLY
+    objective: EXERCISES
+    difficulty_scaling:
+      BEGINNER: { target: 10, points: 150, exp: 40 }
+    duration_days: 7
+    journey_tags: ["strength", "bodyweight", "fundamentals"]
+    exercise_focus: ["push_ups", "squats", "planks"]
+    unlocks: ["first_weights"]
+
+  first_weights:
+    id: "first_weights"
+    name: "First Weights"
+    description: "Complete your first weighted workout"
+    type: DAILY
+    objective: WEIGHT_LIFTED
+    difficulty_scaling:
+      BEGINNER: { target: 100, points: 200, exp: 50 }  # kg total
+    duration_days: 3
+    journey_tags: ["strength", "weights", "milestone"]
+    prerequisites: ["bodyweight_basics"]
+    unlocks: ["strength_builder"]
+    safety_note: "Focus on form over weight"
+
+  strength_builder:
+    id: "strength_builder"
+    name: "Strength Builder"
+    description: "Lift a total of 500kg across all exercises"
+    type: WEEKLY
+    objective: WEIGHT_LIFTED
+    difficulty_scaling:
+      BEGINNER: { target: 500, points: 400, exp: 100 }
+      INTERMEDIATE: { target: 750, points: 500, exp: 125 }
+    duration_days: 14
+    journey_tags: ["strength", "progression", "volume"]
+    prerequisites: ["first_weights"]
+    unlocks: ["compound_master"]

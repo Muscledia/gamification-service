@@ -1,0 +1,43 @@
+# Beginner Challenge Templates: Cardio Basics
+template_group: "cardio_basics"
+journey_phase: "foundation"
+category: CARDIO
+
+templates:
+  active_start:
+    id: "active_start"
+    name: "Active Start"
+    description: "Exercise for 15 minutes continuously"
+    type: DAILY
+    objective: DURATION
+    difficulty_scaling:
+      BEGINNER: { target: 15, points: 100, exp: 25 }
+    duration_days: 1
+    journey_tags: ["cardio", "endurance", "beginner"]
+    unlocks: ["cardio_consistency"]
+
+  cardio_consistency:
+    id: "cardio_consistency"
+    name: "Cardio Consistency"
+    description: "Complete 30 minutes of cardio 3 times this week"
+    type: WEEKLY
+    objective: DURATION
+    difficulty_scaling:
+      BEGINNER: { target: 90, points: 250, exp: 60 }  # 30min x 3 = 90min
+    duration_days: 7
+    journey_tags: ["cardio", "consistency"]
+    prerequisites: ["active_start"]
+    unlocks: ["endurance_builder"]
+
+  step_counter:
+    id: "step_counter"
+    name: "Step Counter"
+    description: "Take 8,000 steps in one day"
+    type: DAILY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      BEGINNER: { target: 8000, points: 150, exp: 35 }
+    duration_days: 1
+    journey_tags: ["cardio", "daily_activity", "steps"]
+    measurement_unit: "steps"
+    unlocks: ["step_master"]
