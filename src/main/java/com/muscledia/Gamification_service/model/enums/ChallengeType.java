@@ -10,7 +10,8 @@ public enum ChallengeType {
 
     DAILY(Duration.ofDays(1), "Daily Challenge"),
     WEEKLY(Duration.ofDays(7), "Weekly Challenge"),
-    MONTHLY(Duration.ofDays(30), "Monthly Challenge");
+    MONTHLY(Duration.ofDays(30), "Monthly Challenge"),
+    YEARLY(Duration.ofDays(365), "Yearly Challenge");
 
     private final Duration duration;
     private final String displayName;

@@ -2,6 +2,7 @@ package com.muscledia.Gamification_service.model;
 
 
 import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
+import com.muscledia.Gamification_service.model.enums.ChallengeType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.PrePersist;
@@ -41,6 +42,10 @@ public class UserChallenge {
 
     @Enumerated(EnumType.STRING)
     private ChallengeStatus status = ChallengeStatus.ACTIVE; // ACTIVE, COMPLETED, FAILED, EXPIRED
+
+    private String challengeName;
+    private ChallengeType challengeType;
+    private String progressUnit;
 
     // Progress tracking
     private Integer currentProgress = 0;
