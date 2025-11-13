@@ -24,59 +24,61 @@ public class UserChallengeMapper {
             return null;
         }
 
-        return UserChallengeDto.builder()
+        UserChallengeDto.UserChallengeDtoBuilder builder = UserChallengeDto.builder()
                 .id(userChallenge.getId())
                 .challengeId(userChallenge.getChallengeId())
-                .challengeName(challenge != null ? challenge.getName() : "Unknown Challenge")
-                .challengeType(challenge != null ? challenge.getType().name() : "UNKNOWN")
                 .status(userChallenge.getStatus())
                 .currentProgress(userChallenge.getCurrentProgress())
                 .targetValue(userChallenge.getTargetValue())
-                .progressPercentage(userChallenge.getProgressPercentage())
-                // FIX: Use the public method from ChallengeMapper
-                .progressUnit(challenge != null ? ChallengeMapper.getProgressUnit(challenge.getObjectiveType()) : "points")
+                .progressPercentage(calculateProgressPercentage(userChallenge))
                 .startedAt(userChallenge.getStartedAt())
                 .completedAt(userChallenge.getCompletedAt())
                 .expiresAt(userChallenge.getExpiresAt())
-                .pointsEarned(challenge != null ? challenge.getRewardPoints() : 0)
+                .pointsEarned(userChallenge.getPointsEarned())
                 .statusDisplayName(userChallenge.getStatus().getDisplayName())
-                .formattedProgress(formatProgress(userChallenge, challenge))
-                .timeRemaining(calculateTimeRemaining(userChallenge.getExpiresAt()))
+                .formattedProgress(formatProgress(userChallenge))
+                .timeRemaining(calculateTimeRemaining(userChallenge))
                 .canComplete(userChallenge.isTargetReached())
-                .completionMessage(challenge != null ? generateCompletionMessage(challenge) : "Challenge completed!")
-                .build();
-    }
+                .completionMessage(userChallenge.isTargetReached() ? "Challenge completed!" : "Keep going!");
 
-    private static String formatProgress(UserChallenge userChallenge, Challenge challenge) {
-        if (challenge == null) {
-            return userChallenge.getCurrentProgress() + "/" + userChallenge.getTargetValue();
-        }
-
-        String unit = ChallengeMapper.getProgressUnit(challenge.getObjectiveType());
-        return userChallenge.getCurrentProgress() + "/" + userChallenge.getTargetValue() + " " + unit;
-    }
-
-    private static String calculateTimeRemaining(Instant expiresAt) {
-        if (expiresAt == null) {
-            return "No deadline";
-        }
-
-        Instant now = Instant.now();
-        if (now.isAfter(expiresAt)) {
-            return "Expired";
-        }
-
-        Duration remaining = Duration.between(now, expiresAt);
-        long hours = remaining.toHours();
-        long minutes = remaining.toMinutes() % 60;
-
-        if (hours > 24) {
-            return (hours / 24) + " days remaining";
-        } else if (hours > 0) {
-            return hours + "h " + minutes + "m remaining";
+        // If challenge details are provided, use them
+        if (challenge != null) {
+            builder.challengeName(challenge.getName())
+                    .challengeType(challenge.getType().name())
+                    .progressUnit(ChallengeMapper.getProgressUnit(challenge.getObjectiveType()));
         } else {
-            return minutes + "m remaining";
+            // Fallback to generic values
+            builder.challengeName("Challenge")
+                    .challengeType("UNKNOWN")
+                    .progressUnit("points");
         }
+
+        return builder.build();
+    }
+
+    private static double calculateProgressPercentage(UserChallenge userChallenge) {
+        if (userChallenge.getTargetValue() == 0) return 0.0;
+        return (double) userChallenge.getCurrentProgress() / userChallenge.getTargetValue() * 100;
+    }
+
+    private static String formatProgress(UserChallenge userChallenge) {
+        return userChallenge.getCurrentProgress() + "/" + userChallenge.getTargetValue();
+    }
+
+    private static String calculateTimeRemaining(UserChallenge userChallenge) {
+        if (userChallenge.getExpiresAt() == null) return "No deadline";
+
+        long seconds = java.time.Duration.between(
+                java.time.Instant.now(),
+                userChallenge.getExpiresAt()
+        ).getSeconds();
+
+        if (seconds <= 0) return "Expired";
+
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+
+        return hours + "h " + minutes + "m remaining";
     }
 
     private static String generateCompletionMessage(Challenge challenge) {

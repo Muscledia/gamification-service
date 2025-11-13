@@ -8,12 +8,13 @@ import com.muscledia.Gamification_service.model.enums.ChallengeType;
 import com.muscledia.Gamification_service.model.enums.DifficultyLevel;
 import com.muscledia.Gamification_service.repository.ChallengeRepository;
 import com.muscledia.Gamification_service.repository.ChallengeTemplateRepository;
-import com.muscledia.Gamification_service.repository.UserJourneyProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -28,7 +29,6 @@ public class ChallengeProgressionService {
     private final ChallengeTemplateRepository templateRepository;
     private final ChallengeRepository challengeRepository;
     private final UserPerformanceAnalyzer performanceAnalyzer;
-    private final UserJourneyProfileRepository userJourneyProfileRepository;
     private final UserJourneyProfileService userJourneyProfileService;
 
     public List<Challenge> generatePersonalizedChallenges(Long userId, ChallengeType type,
@@ -40,10 +40,94 @@ public class ChallengeProgressionService {
 
         UserPerformanceMetrics performance = performanceAnalyzer.analyzeUser(userId);
 
-        return eligibleTemplates.stream()
-                .filter(template -> isEligibleForUser(template, userJourney))
-                .map(template -> createPersonalizedChallenge(template, userJourney, performance))
-                .collect(Collectors.toList());
+        List<Challenge> generatedChallenges = new ArrayList<>();
+
+        for (ChallengeTemplate template : eligibleTemplates) {
+            if (isEligibleForUser(template, userJourney)) {
+
+                // Check if challenge already exists for today/this period
+                Challenge existingChallenge = findExistingChallenge(template, type);
+
+                if (existingChallenge != null) {
+                    generatedChallenges.add(existingChallenge);
+                } else {
+                    // Create and save new challenge
+                    Challenge newChallenge = createPersonalizedChallenge(template, userJourney, performance);
+                    Challenge savedChallenge = challengeRepository.save(newChallenge); // SAVE TO GET ID
+                    generatedChallenges.add(savedChallenge);
+
+                    log.debug("Generated new challenge: {} ({})", savedChallenge.getName(), savedChallenge.getId());
+                }
+            }
+        }
+
+        return generatedChallenges;
+    }
+
+    // ADD THIS METHOD: Check if challenge already exists for current period
+    private Challenge findExistingChallenge(ChallengeTemplate template, ChallengeType type) {
+        Instant now = Instant.now();
+        Instant periodStart = calculatePeriodStart(now, type);
+        Instant periodEnd = calculatePeriodEnd(now, type);
+
+        // Find existing challenge for this template and time period
+        return challengeRepository.findByTemplateIdAndDateRange(
+                        template.getId(), periodStart, periodEnd)
+                .orElse(null);
+    }
+
+    // ADD THESE HELPER METHODS
+    private Instant calculatePeriodStart(Instant now, ChallengeType type) {
+        return switch (type) {
+            case DAILY -> now.truncatedTo(ChronoUnit.DAYS);
+            case WEEKLY -> now.minus(Duration.ofDays(now.atZone(java.time.ZoneOffset.UTC).getDayOfWeek().getValue() - 1))
+                    .truncatedTo(ChronoUnit.DAYS);
+            case MONTHLY -> now.atZone(java.time.ZoneOffset.UTC).withDayOfMonth(1).toInstant()
+                    .truncatedTo(ChronoUnit.DAYS);
+            case YEARLY -> now.atZone(java.time.ZoneOffset.UTC).withDayOfYear(1).toInstant()
+                    .truncatedTo(ChronoUnit.DAYS);
+        };
+    }
+
+    private Instant calculatePeriodEnd(Instant start, ChallengeType type) {
+        return switch (type) {
+            case DAILY -> start.plus(Duration.ofDays(1));
+            case WEEKLY -> start.plus(Duration.ofDays(7));
+            case MONTHLY -> start.plus(Duration.ofDays(30)); // Approximate
+            case YEARLY -> start.plus(Duration.ofDays(365));
+        };
+    }
+
+    private Challenge createPersonalizedChallenge(ChallengeTemplate template,
+                                                  UserJourneyProfile journey,
+                                                  UserPerformanceMetrics performance) {
+
+        double difficultyMultiplier = calculateDifficultyMultiplier(performance);
+        DifficultyLevel adjustedDifficulty = calculateAdjustedDifficulty(
+                journey.getPreferredDifficulty(), performance);
+
+        Instant startDate = Instant.now();
+        Instant endDate = template.getType().calculateExpiryTime(startDate);
+
+        return Challenge.builder()
+                .templateId(template.getId()) // Link to template
+                .name(template.getName())
+                .description(template.getDescription())
+                .type(template.getType())
+                .objectiveType(template.getObjective())
+                .targetValue((int)(template.getTargetValue(adjustedDifficulty) * difficultyMultiplier))
+                .rewardPoints(template.getRewardPoints(adjustedDifficulty))
+                .difficultyLevel(adjustedDifficulty)
+                .prerequisiteChallengeIds(template.getPrerequisiteTemplates())
+                .unlocksChallengeIds(template.getUnlocksTemplates())
+                .userJourneyTags(new HashSet<>(template.getUserJourneyTags()))
+                .journeyPhase(journey.getCurrentPhase())
+                .personalizedDifficultyMultiplier(difficultyMultiplier)
+                .startDate(startDate)
+                .endDate(endDate)
+                .active(true)
+                .createdAt(Instant.now())
+                .build();
     }
 
     public List<Challenge> unlockNextChallenges(Long userId, Challenge completedChallenge) {
@@ -69,34 +153,6 @@ public class ChallengeProgressionService {
         return unlockedChallenges;
     }
 
-    private Challenge createPersonalizedChallenge(ChallengeTemplate template,
-                                                  UserJourneyProfile journey,
-                                                  UserPerformanceMetrics performance) {
-
-        double difficultyMultiplier = calculateDifficultyMultiplier(performance);
-        DifficultyLevel adjustedDifficulty = calculateAdjustedDifficulty(
-                journey.getPreferredDifficulty(), performance);
-
-        return Challenge.builder()
-                .templateId(template.getId())
-                .name(template.getName())
-                .description(template.getDescription())
-                .type(template.getType())
-                .objectiveType(template.getObjective())
-                .targetValue((int)(template.getTargetValue(adjustedDifficulty) * difficultyMultiplier))
-                .rewardPoints(template.getRewardPoints(adjustedDifficulty))
-                .difficultyLevel(adjustedDifficulty)
-                .prerequisiteChallengeIds(template.getPrerequisiteTemplates())
-                .unlocksChallengeIds(template.getUnlocksTemplates())
-                .userJourneyTags(new HashSet<>(template.getUserJourneyTags()))
-                .journeyPhase(journey.getCurrentPhase())
-                .personalizedDifficultyMultiplier(difficultyMultiplier)
-                .startDate(Instant.now())
-                .endDate(template.getType().calculateExpiryTime(Instant.now()))
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
-    }
 
     private double calculateDifficultyMultiplier(UserPerformanceMetrics performance) {
         double baseMultiplier = 1.0;
