@@ -178,12 +178,24 @@ public class ChallengeService {
 
     private void publishChallengeStartedEvent(UserChallenge userChallenge, Challenge challenge) {
         try {
+            // Add debug logging to identify the null field
+            log.debug("Publishing event - UserChallenge: userId={}, challengeId={}, startedAt={}",
+                    userChallenge.getUserId(), userChallenge.getChallengeId(), userChallenge.getStartedAt());
+            log.debug("Publishing event - Challenge: name={}, type={}",
+                    challenge.getName(), challenge.getType());
+
             ChallengeStartedEvent event = ChallengeStartedEvent.of(userChallenge, challenge);
+
+            // Additional validation log
+            log.debug("Created event: {}", event);
+
             eventPublisher.publishChallengeStarted(event);
-            log.debug("Published challenge started event for user {}", userChallenge.getUserId());
+            log.debug("Successfully published challenge started event for user {}", userChallenge.getUserId());
+
+        } catch (IllegalArgumentException e) {
+            log.error("Event creation failed due to validation: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to publish challenge started event: {}", e.getMessage());
-            // Don't fail the whole operation for event publishing issues
+            log.error("Failed to publish challenge started event: {}", e.getMessage(), e);
         }
     }
 }
