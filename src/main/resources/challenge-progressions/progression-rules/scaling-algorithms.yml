@@ -1,0 +1,57 @@
+# Scaling Algorithms for Progressive Challenges
+scaling_algorithms:
+
+  linear_progression:
+    name: "Linear Progression"
+    description: "Steady linear increase in difficulty"
+    formula: "base_value + (level * increment)"
+    parameters:
+      increment: 0.1
+    use_cases: ["beginner_challenges", "consistency_challenges"]
+
+  exponential_progression:
+    name: "Exponential Growth"
+    description: "Exponential difficulty increase"
+    formula: "base_value * (multiplier ^ level)"
+    parameters:
+      multiplier: 1.15
+    use_cases: ["strength_challenges", "advanced_challenges"]
+
+  logarithmic_progression:
+    name: "Logarithmic Scaling"
+    description: "Slower growth at higher levels"
+    formula: "base_value * log(level + 1) * factor"
+    parameters:
+      factor: 1.5
+    use_cases: ["endurance_challenges", "skill_challenges"]
+
+difficulty_multipliers:
+  user_performance_based:
+    high_performer: 1.25      # >80% completion rate
+    average_performer: 1.0    # 50-80% completion rate
+    struggling_user: 0.8      # <50% completion rate
+
+  journey_phase_based:
+    foundation: 0.9
+    building: 1.0
+    mastery: 1.3
+
+  challenge_type_based:
+    DAILY: 0.8
+    WEEKLY: 1.0
+    MONTHLY: 1.5
+
+adaptive_scaling:
+  completion_rate_targets:
+    optimal_range: [60, 80]  # Target 60-80% completion rate
+    adjustment_threshold: 10  # Adjust if outside range by 10%
+    adjustment_factor: 0.1    # 10% adjustment per iteration
+
+  performance_windows:
+    recent_challenges: 10     # Look at last 10 challenges
+    performance_history: 30   # 30-day performance window
+
+  scaling_limits:
+    maximum_increase: 2.0     # Max 2x base difficulty
+    minimum_decrease: 0.5     # Min 0.5x base difficulty
+    adjustment_frequency: 7   # Adjust weekly

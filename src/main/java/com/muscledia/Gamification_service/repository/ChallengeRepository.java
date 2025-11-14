@@ -24,6 +24,12 @@ public interface ChallengeRepository extends MongoRepository<Challenge, String> 
     List<Challenge> findByEndDateBefore(Instant endDate);  // For expired challenges
     List<Challenge> findByStartDateAfter(Instant startDate); // For upcoming challenges
 
+    @Query("{'templateId': ?0, 'startDate': {$gte: ?1}, 'endDate': {$lte: ?2}}")
+    Optional<Challenge> findByTemplateIdAndDateRange(String templateId, Instant startDate, Instant endDate);
+
+    @Query("{'endDate': {$lt: ?0}}")
+    List<Challenge> findExpiredChallenges(Instant cutoffDate);
+
     List<Challenge> findByTypeAndActiveTrue(ChallengeType type);
     List<Challenge> findByActiveTrue();
     List<Challenge> findByActiveFalse();
@@ -42,9 +48,6 @@ public interface ChallengeRepository extends MongoRepository<Challenge, String> 
     @Query("{'active': true, 'startDate': {$lte: ?0}, 'endDate': {$gte: ?0}, 'difficulty': ?1}")
     List<Challenge> findActiveChallengesForDifficulty(Instant now, DifficultyLevel difficulty);
 
-    // Custom query methods using @Query annotation for complex logic
-    @Query("{'endDate': {$lt: ?0}}")
-    List<Challenge> findExpiredChallenges(Instant now);
 
     @Query("{'startDate': {$gt: ?0}}")
     List<Challenge> findUpcomingChallenges(Instant now);

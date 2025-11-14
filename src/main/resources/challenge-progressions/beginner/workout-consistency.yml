@@ -1,0 +1,62 @@
+# Beginner Challenge Templates: Workout Consistency
+template_group: "workout_consistency"
+journey_phase: "foundation"
+category: CONSISTENCY
+
+templates:
+  first_workout:
+    id: "first_workout"
+    name: "First Steps"
+    description: "Complete your very first workout"
+    type: DAILY
+    objective: EXERCISES
+    difficulty_scaling:
+      BEGINNER: { target: 1, points: 100, exp: 25 }
+    duration_days: 1
+    journey_tags: ["beginner", "consistency"]
+    prerequisites: []
+    unlocks: ["three_day_start"]
+    auto_enroll: true
+
+  three_day_start:
+    id: "three_day_start"
+    name: "Three Day Start"
+    description: "Complete workouts for 3 consecutive days"
+    type: WEEKLY
+    objective: TIME_BASED
+    difficulty_scaling:
+      BEGINNER: { target: 3, points: 200, exp: 50 }
+    duration_days: 7
+    journey_tags: ["beginner", "consistency", "habit_building"]
+    prerequisites: ["first_workout"]
+    unlocks: ["weekly_warrior", "movement_explorer"]
+    completion_message: "Amazing! You're building a strong foundation!"
+
+  weekly_warrior:
+    id: "weekly_warrior"
+    name: "Weekly Warrior"
+    description: "Complete 5 workouts in one week"
+    type: WEEKLY
+    objective: TIME_BASED
+    difficulty_scaling:
+      BEGINNER: { target: 5, points: 300, exp: 75 }
+      INTERMEDIATE: { target: 6, points: 350, exp: 85 }
+    duration_days: 7
+    journey_tags: ["consistency", "dedication"]
+    prerequisites: ["three_day_start"]
+    unlocks: ["monthly_champion"]
+
+  monthly_champion:
+    id: "monthly_champion"
+    name: "Monthly Champion"
+    description: "Complete 20 workouts in 30 days"
+    type: MONTHLY
+    objective: TIME_BASED
+    difficulty_scaling:
+      BEGINNER: { target: 20, points: 800, exp: 200 }
+      INTERMEDIATE: { target: 24, points: 950, exp: 235 }
+    duration_days: 30
+    journey_tags: ["consistency", "champion", "dedication"]
+    prerequisites: ["weekly_warrior"]
+    unlocks: ["consistency_master"]
+    milestone: true

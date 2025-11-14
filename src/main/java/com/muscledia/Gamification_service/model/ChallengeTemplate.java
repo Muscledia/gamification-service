@@ -12,10 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.annotation.Id;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -39,6 +36,12 @@ public class ChallengeTemplate {
     private ObjectiveType objective;
     private String unlockedQuestId;
 
+    private List<String> prerequisiteTemplates;
+    private List<String> unlocksTemplates;
+    private Set<String> userJourneyTags;
+    private String journeyPhase;
+    private Map<String, Object> metadata = new HashMap<>();
+
     // Target values for each difficulty level
     @Builder.Default
     private Map<DifficultyLevel, Integer> targetValues = new HashMap<>();
@@ -59,5 +62,33 @@ public class ChallengeTemplate {
 
     public Integer getRewardPoints(DifficultyLevel difficulty) {
         return rewardPoints.getOrDefault(difficulty, 50); // Default fallback
+    }
+
+    public String getJourneyPhase() {
+        return journeyPhase != null ? journeyPhase : "foundation";
+    }
+
+    public List<String> getPrerequisiteTemplates() {
+        return prerequisiteTemplates != null ? prerequisiteTemplates : new ArrayList<>();
+    }
+
+    public List<String> getUnlocksTemplates() {
+        return unlocksTemplates != null ? unlocksTemplates : new ArrayList<>();
+    }
+
+    public Set<String> getUserJourneyTags() {
+        return userJourneyTags != null ? userJourneyTags : new HashSet<>();
+    }
+
+    public Object getMetadata(String key) {
+        return metadata != null ? metadata.get(key) : null;
+    }
+
+    public boolean isMilestone() {
+        return metadata != null && Boolean.TRUE.equals(metadata.get("milestone"));
+    }
+
+    public boolean isLegendary() {
+        return metadata != null && Boolean.TRUE.equals(metadata.get("legendary"));
     }
 }

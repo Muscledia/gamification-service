@@ -6,5 +6,6 @@ public enum QuestType {
     SPECIAL, // For unique, event-driven, or story-based quests
     DAILY,
     WEEKLY, // Added for flexibility based on common quest types
-    MONTHLY
+    MONTHLY,
+    YEARLY,
 }

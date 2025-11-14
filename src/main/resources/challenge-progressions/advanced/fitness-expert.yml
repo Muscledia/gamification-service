@@ -1,0 +1,64 @@
+# Advanced Challenge Templates: Fitness Expert
+template_group: "fitness_expert"
+journey_phase: "mastery"
+category: SKILL
+
+templates:
+  movement_master:
+    id: "movement_master"
+    name: "Movement Master"
+    description: "Demonstrate mastery across all movement patterns"
+    type: MONTHLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      ADVANCED: { target: 7, points: 1000, exp: 250 }     # 7 movement patterns
+      ELITE: { target: 10, points: 1400, exp: 350 }      # 10 movement patterns
+    duration_days: 45
+    journey_tags: ["skill", "movement", "mastery"]
+    movement_patterns:
+      - "squat_pattern"
+      - "hinge_pattern"
+      - "push_pattern"
+      - "pull_pattern"
+      - "lunge_pattern"
+      - "rotation_pattern"
+      - "gait_pattern"
+    prerequisites: ["technique_master"]
+    unlocks: ["fitness_guru"]
+
+  fitness_guru:
+    id: "fitness_guru"
+    name: "Fitness Guru"
+    description: "Complete advanced challenges across all fitness domains"
+    type: MONTHLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      ELITE: { target: 5, points: 2000, exp: 500 }       # 5 domain mastery
+    duration_days: 90
+    journey_tags: ["mastery", "guru", "complete_fitness"]
+    domains:
+      - "strength_mastery"
+      - "endurance_mastery"
+      - "flexibility_mastery"
+      - "balance_mastery"
+      - "coordination_mastery"
+    prerequisites: ["movement_master", "strength_legend", "endurance_legend"]
+    unlocks: ["fitness_legend"]
+    legendary: true
+    mentor_role: true
+
+  fitness_legend:
+    id: "fitness_legend"
+    name: "Fitness Legend"
+    description: "The ultimate fitness achievement - legendary status"
+    type: YEARLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      ELITE: { target: 1, points: 5000, exp: 1000 }
+    duration_days: 365
+    journey_tags: ["legend", "ultimate", "hall_of_fame"]
+    prerequisites: ["fitness_guru"]
+    unlocks: []
+    hall_of_fame: true
+    legendary: true
+    ultimate_achievement: true

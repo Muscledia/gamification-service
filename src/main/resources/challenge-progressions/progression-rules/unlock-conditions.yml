@@ -1,0 +1,78 @@
+# Challenge Unlock Conditions and Prerequisites
+unlock_conditions:
+
+  level_gates:
+    beginner_gate:
+      min_level: 1
+      max_level: 5
+      challenges: ["foundation_challenges"]
+
+    intermediate_gate:
+      min_level: 6
+      max_level: 15
+      challenges: ["building_challenges"]
+      completion_requirement: 10  # Must complete 10 foundation challenges
+
+    advanced_gate:
+      min_level: 16
+      max_level: 25
+      challenges: ["mastery_challenges"]
+      completion_requirement: 25  # Must complete 25 total challenges
+
+  prerequisite_chains:
+    strength_progression:
+      - "first_workout"
+      - "bodyweight_basics"
+      - "first_weights"
+      - "strength_builder"
+      - "compound_master"
+      - "powerlifter"
+      - "elite_lifter"
+      - "strength_legend"
+
+    endurance_progression:
+      - "active_start"
+      - "cardio_consistency"
+      - "distance_goal"
+      - "interval_training"
+      - "endurance_master"
+      - "ultra_endurance"
+      - "marathon_equivalent"
+      - "endurance_legend"
+
+  milestone_unlocks:
+    strength_milestones:
+      first_pr: "personal_record"
+      bodyweight_lift: "bodyweight_challenge"
+      elite_ratio: "elite_lifter"
+
+    endurance_milestones:
+      first_5k: "distance_goal"
+      first_hour: "ultra_endurance"
+      marathon_time: "marathon_equivalent"
+
+  special_conditions:
+    streak_based:
+      seven_day_streak: ["consistency_master"]
+      thirty_day_streak: ["dedication_legend"]
+
+    performance_based:
+      high_completion_rate: ["advanced_challenges"]  # >90% completion
+      perfect_week: ["perfectionist_challenges"]     # 100% weekly completion
+
+    social_based:
+      community_helper: ["mentor_challenges"]
+      motivation_giver: ["inspiration_challenges"]
+
+auto_enrollment:
+  foundation_challenges:
+    - "first_workout"
+    - "three_day_start"
+
+  milestone_celebrations:
+    level_up: "level_celebration_challenge"
+    first_pr: "pr_celebration_challenge"
+
+  seasonal_challenges:
+    new_year: "resolution_challenges"
+    summer: "summer_body_challenges"

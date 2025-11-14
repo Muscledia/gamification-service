@@ -3,6 +3,7 @@ package com.muscledia.Gamification_service.service;
 import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import com.muscledia.Gamification_service.model.Challenge;
 import com.muscledia.Gamification_service.model.UserChallenge;
+import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
 import com.muscledia.Gamification_service.model.enums.ObjectiveType;
 import com.muscledia.Gamification_service.repository.ChallengeRepository;
 import com.muscledia.Gamification_service.repository.UserChallengeRepository;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 /**

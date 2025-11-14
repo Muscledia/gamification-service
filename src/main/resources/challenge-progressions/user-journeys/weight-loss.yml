@@ -1,0 +1,48 @@
+# User Journey: Weight Loss Focus
+journey_id: "weight_loss"
+name: "Weight Loss Journey"
+description: "Sustainable weight loss through exercise and habits"
+
+phases:
+  foundation:
+    name: "Healthy Habits"
+    level_range: [1, 4]
+    duration_weeks: 4
+    key_objectives:
+      - Daily activity habit
+      - Calorie awareness
+      - Consistency building
+    success_criteria:
+      - Daily 30-min activity
+      - Track workouts consistently
+      - Build 14-day streak
+
+  building:
+    name: "Active Lifestyle"
+    level_range: [5, 12]
+    duration_weeks: 12
+    key_objectives:
+      - Increase activity intensity
+      - Strength + cardio mix
+      - Sustainable routines
+    success_criteria:
+      - Burn 2000 calories/week
+      - Complete strength training
+      - Maintain consistency
+
+  mastery:
+    name: "Maintenance Mode"
+    level_range: [13, 20]
+    duration_weeks: 16
+    key_objectives:
+      - Maintain weight loss
+      - Advanced fitness goals
+      - Lifestyle integration
+    success_criteria:
+      - Maintain target weight
+      - Complete advanced goals
+      - Help others succeed
+
+preferred_challenge_types: [DAILY]
+preferred_objectives: [DURATION, EXERCISES, TIME_BASED]
+progression_multiplier: 1.0

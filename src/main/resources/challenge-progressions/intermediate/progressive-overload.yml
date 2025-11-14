@@ -1,0 +1,50 @@
+# Intermediate Challenge Templates: Progressive Overload
+template_group: "progressive_overload"
+journey_phase: "building"
+category: STRENGTH
+
+templates:
+  weight_progression:
+    id: "weight_progression"
+    name: "Weight Progression"
+    description: "Increase your lifting weight 3 times this week"
+    type: WEEKLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 3, points: 400, exp: 100 }
+      ADVANCED: { target: 5, points: 550, exp: 135 }
+    duration_days: 7
+    journey_tags: ["strength", "progression", "PR"]
+    prerequisites: ["strength_builder"]
+    unlocks: ["strength_milestone"]
+
+  personal_record:
+    id: "personal_record"
+    name: "Personal Record"
+    description: "Set a new personal record in any exercise"
+    type: WEEKLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 1, points: 500, exp: 125 }
+      ADVANCED: { target: 2, points: 750, exp: 185 }
+    duration_days: 14
+    journey_tags: ["strength", "PR", "milestone"]
+    prerequisites: ["weight_progression"]
+    unlocks: ["pr_master"]
+    celebration: "New Personal Record Achievement!"
+
+  compound_master:
+    id: "compound_master"
+    name: "Compound Master"
+    description: "Master the big 3: squat, bench, deadlift"
+    type: MONTHLY
+    objective: ACHIEVEMENT_BASED
+    difficulty_scaling:
+      INTERMEDIATE: { target: 3, points: 800, exp: 200 }
+      ADVANCED: { target: 3, points: 1000, exp: 250 }
+    duration_days: 30
+    journey_tags: ["strength", "compound", "mastery"]
+    exercise_focus: ["squat", "bench_press", "deadlift"]
+    prerequisites: ["personal_record"]
+    unlocks: ["powerlifter"]
+    milestone: true

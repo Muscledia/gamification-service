@@ -49,4 +49,7 @@ public interface UserChallengeRepository extends MongoRepository<UserChallenge, 
     // Count active challenges for a user
     @Query(value = "{'userId': ?0, 'status': 'ACTIVE'}", count = true)
     long countActiveByUserId(Long userId);
+
+    @Query("{'userId': ?0, 'startedAt': {'$gte': ?1}}")
+    List<UserChallenge> findByUserIdAndStartedAtAfter(Long userId, Instant after);
 }

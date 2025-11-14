@@ -1,0 +1,48 @@
+# User Journey: Endurance-Focused Training
+journey_id: "endurance_focused"
+name: "Endurance Athlete Journey"
+description: "Build cardiovascular fitness and endurance capacity"
+
+phases:
+  foundation:
+    name: "Cardio Foundation"
+    level_range: [1, 4]
+    duration_weeks: 6
+    key_objectives:
+      - Establish cardio habit
+      - Build base fitness
+      - Learn heart rate zones
+    success_criteria:
+      - Complete 20 cardio sessions
+      - Exercise 150 minutes/week
+      - Maintain target heart rate
+
+  building:
+    name: "Endurance Building"
+    level_range: [5, 10]
+    duration_weeks: 8
+    key_objectives:
+      - Increase workout duration
+      - Add interval training
+      - Improve VO2 max
+    success_criteria:
+      - Complete 60-minute sessions
+      - Master interval protocols
+      - Complete distance goals
+
+  mastery:
+    name: "Elite Endurance"
+    level_range: [11, 20]
+    duration_weeks: 12
+    key_objectives:
+      - Competition preparation
+      - Advanced training methods
+      - Peak performance
+    success_criteria:
+      - Complete ultra-distance events
+      - Maintain elite fitness levels
+      - Coach other athletes
+
+preferred_challenge_types: [DAILY, WEEKLY]
+preferred_objectives: [DURATION, TIME_BASED, ACHIEVEMENT_BASED]
+progression_multiplier: 1.15

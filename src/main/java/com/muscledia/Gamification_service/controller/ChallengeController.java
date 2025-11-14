@@ -3,16 +3,16 @@ package com.muscledia.Gamification_service.controller;
 
 import com.muscledia.Gamification_service.dto.request.ChallengeDto;
 import com.muscledia.Gamification_service.dto.request.UserChallengeDto;
+import com.muscledia.Gamification_service.dto.response.ApiResponse;
 import com.muscledia.Gamification_service.mapper.ChallengeMapper;
 import com.muscledia.Gamification_service.mapper.UserChallengeMapper;
 import com.muscledia.Gamification_service.model.Challenge;
 import com.muscledia.Gamification_service.model.UserChallenge;
 import com.muscledia.Gamification_service.model.enums.ChallengeType;
-import com.muscledia.Gamification_service.security.UserPrincipal;
 import com.muscledia.Gamification_service.service.ChallengeService;
+import com.muscledia.Gamification_service.utils.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,47 +33,40 @@ public class ChallengeController {
     private final ChallengeService challengeService;
 
     @GetMapping("/daily")
-    public ResponseEntity<List<ChallengeDto>> getDailyChallenges(Authentication auth) {
-        Long userId = extractUserId(auth);
+    public ResponseEntity<ApiResponse<List<ChallengeDto>>> getDailyChallenges() {
+        Long userId = AuthenticationService.getCurrentUserId();
         List<Challenge> challenges = challengeService.getAvailableChallenges(userId, ChallengeType.DAILY);
         List<ChallengeDto> dtos = challenges.stream()
                 .map(ChallengeMapper::toDto)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(ApiResponse.success("Daily challenges retrieved successfully", dtos));
     }
 
     @GetMapping("/weekly")
-    public ResponseEntity<List<ChallengeDto>> getWeeklyChallenges(Authentication auth) {
-        Long userId = extractUserId(auth);
+    public ResponseEntity<ApiResponse<List<ChallengeDto>>> getWeeklyChallenges() {
+        Long userId = AuthenticationService.getCurrentUserId();
         List<Challenge> challenges = challengeService.getAvailableChallenges(userId, ChallengeType.WEEKLY);
         List<ChallengeDto> dtos = challenges.stream()
                 .map(ChallengeMapper::toDto)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(ApiResponse.success("Weekly challenges retrieved successfully", dtos));
     }
 
     @PostMapping("/{challengeId}/start")
-    public ResponseEntity<UserChallengeDto> startChallenge(
-            @PathVariable String challengeId,
-            Authentication auth) {
-        Long userId = extractUserId(auth);
+    public ResponseEntity<ApiResponse<UserChallengeDto>> startChallenge(@PathVariable String challengeId) {
+        Long userId = AuthenticationService.getCurrentUserId();
         UserChallenge userChallenge = challengeService.startChallenge(userId, challengeId);
         UserChallengeDto dto = UserChallengeMapper.toDto(userChallenge);
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(ApiResponse.success("Challenge started successfully", dto));
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<UserChallengeDto>> getActiveChallenges(Authentication auth) {
-        Long userId = extractUserId(auth);
+    public ResponseEntity<ApiResponse<List<UserChallengeDto>>> getActiveChallenges() {
+        Long userId = AuthenticationService.getCurrentUserId();
         List<UserChallenge> challenges = challengeService.getActiveChallenges(userId);
         List<UserChallengeDto> dtos = challenges.stream()
                 .map(UserChallengeMapper::toDto)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    private Long extractUserId(Authentication auth) {
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        return principal.getUserId();
+        return ResponseEntity.ok(ApiResponse.success("Active challenges retrieved successfully", dtos));
     }
 }
