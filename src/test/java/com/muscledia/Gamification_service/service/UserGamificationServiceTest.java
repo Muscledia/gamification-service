@@ -1,5 +1,6 @@
 package com.muscledia.Gamification_service.service;
 
+import com.muscledia.Gamification_service.dto.response.LeaderboardResponse;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.repository.UserGamificationProfileRepository;
 import com.muscledia.Gamification_service.testdata.TestDataBuilder;
@@ -14,13 +15,13 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -34,6 +35,9 @@ class UserGamificationServiceTest {
 
     @InjectMocks
     private UserGamificationService userGamificationService;
+
+    @Mock
+    private LeaderboardService leaderboardService;
 
     private UserGamificationProfile testUser;
 
@@ -218,31 +222,43 @@ class UserGamificationServiceTest {
     @Test
     void shouldGetPointsLeaderboard() {
         // Given
-        List<UserGamificationProfile> leaderboard = List.of(testUser);
-        when(repository.findAllByOrderByPointsDesc(any(PageRequest.class))).thenReturn(leaderboard);
+        List<UserGamificationProfile> profiles = Arrays.asList(
+                createProfile(1L, 1000),
+                createProfile(2L, 900),
+                createProfile(3L, 800)
+        );
+
+        when(leaderboardService.getPointsLeaderboard(10))
+                .thenReturn(mapToLeaderboardResponses(profiles));
 
         // When
-        List<UserGamificationProfile> result = userGamificationService.getPointsLeaderboard(10);
+        List<LeaderboardResponse> result = userGamificationService.getPointsLeaderboard(10);
 
         // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo(testUser);
-        verify(repository).findAllByOrderByPointsDesc(PageRequest.of(0, 10));
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        verify(leaderboardService).getPointsLeaderboard(10);
     }
 
     @Test
     void shouldGetLevelLeaderboard() {
         // Given
-        List<UserGamificationProfile> leaderboard = List.of(testUser);
-        when(repository.findAllByOrderByLevelDesc(any(PageRequest.class))).thenReturn(leaderboard);
+        List<UserGamificationProfile> profiles = Arrays.asList(
+                createProfile(1L, 10),
+                createProfile(2L, 9),
+                createProfile(3L, 8)
+        );
+
+        when(leaderboardService.getLevelLeaderboard(10))
+                .thenReturn(mapToLeaderboardResponses(profiles));
 
         // When
-        List<UserGamificationProfile> result = userGamificationService.getLevelLeaderboard(10);
+        List<LeaderboardResponse> result = userGamificationService.getLevelLeaderboard(10);
 
         // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo(testUser);
-        verify(repository).findAllByOrderByLevelDesc(PageRequest.of(0, 10));
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        verify(leaderboardService).getLevelLeaderboard(10);
     }
 
     @Test
@@ -370,5 +386,53 @@ class UserGamificationServiceTest {
         assertThat(result.getEarnedBadges()).isEmpty();
         verify(repository).findByUserId(userId);
         verify(repository).save(any(UserGamificationProfile.class));
+    }
+
+    /**
+     * Helper method to create a test profile with specific userId and points
+     */
+    private UserGamificationProfile createProfile(Long userId, Integer points) {
+        return UserGamificationProfile.builder()
+                .userId(userId)
+                .points(points)
+                .level(calculateLevel(points))
+                .weeklyStreak(0)
+                .longestWeeklyStreak(0)
+                .monthlyStreak(0)
+                .longestMonthlyStreak(0)
+                .restDaysSinceLastWorkout(0)
+                .totalWorkoutsCompleted(0)
+                .earnedBadges(new ArrayList<>())
+                .quests(new ArrayList<>())
+                .streaks(new HashMap<>())
+                .profileCreatedAt(Instant.now())
+                .lastUpdated(Instant.now())
+                .build();
+    }
+
+    /**
+     * Calculate level based on points (100 points per level)
+     */
+    private Integer calculateLevel(Integer points) {
+        return (points / 100) + 1;
+    }
+
+    /**
+     * Helper method to map profiles to leaderboard responses
+     */
+    private List<LeaderboardResponse> mapToLeaderboardResponses(List<UserGamificationProfile> profiles) {
+        return profiles.stream()
+                .map(profile -> {
+                    LeaderboardResponse response = new LeaderboardResponse();
+                    response.setUserId(profile.getUserId());
+                    response.setPoints(profile.getPoints());
+                    response.setLevel(profile.getLevel());
+                    response.setRank(profiles.indexOf(profile) + 1);
+                    response.setTotalWorkouts(Long.valueOf(profile.getTotalWorkoutsCompleted()));
+                    response.setCurrentStreak(profile.getWeeklyStreak());
+                    response.setLongestStreak(profile.getLongestWeeklyStreak());
+                    return response;
+                })
+                .collect(Collectors.toList());
     }
 }

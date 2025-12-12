@@ -294,6 +294,12 @@ public class TestDataBuilder {
         private Map<String, UserGamificationProfile.StreakData> streaks = new HashMap<>();
         private List<UserBadge> earnedBadges = new ArrayList<>();
         private List<UserQuestProgress> quests = new ArrayList<>();
+        private Integer weeklyStreak = 0;
+        private Integer longestWeeklyStreak = 0;
+        private Integer monthlyStreak = 0;
+        private Integer longestMonthlyStreak = 0;
+        private Integer restDaysSinceLastWorkout = 0;
+        private Integer totalWorkoutsCompleted = 0;
 
         public UserProfileBuilder() {
             // Default streak data
@@ -339,6 +345,36 @@ public class TestDataBuilder {
             return this;
         }
 
+        public UserProfileBuilder withWeeklyStreak(Integer weeklyStreak) {
+            this.weeklyStreak = weeklyStreak;
+            return this;
+        }
+
+        public UserProfileBuilder withLongestWeeklyStreak(Integer longestWeeklyStreak) {
+            this.longestWeeklyStreak = longestWeeklyStreak;
+            return this;
+        }
+
+        public UserProfileBuilder withMonthlyStreak(Integer monthlyStreak) {
+            this.monthlyStreak = monthlyStreak;
+            return this;
+        }
+
+        public UserProfileBuilder withLongestMonthlyStreak(Integer longestMonthlyStreak) {
+            this.longestMonthlyStreak = longestMonthlyStreak;
+            return this;
+        }
+
+        public UserProfileBuilder withRestDaysSinceLastWorkout(Integer restDays) {
+            this.restDaysSinceLastWorkout = restDays;
+            return this;
+        }
+
+        public UserProfileBuilder withTotalWorkoutsCompleted(Integer totalWorkouts) {
+            this.totalWorkoutsCompleted = totalWorkouts;
+            return this;
+        }
+
         public UserProfileBuilder addBadge(UserBadge badge) {
             this.earnedBadges.add(badge);
             return this;
@@ -350,15 +386,23 @@ public class TestDataBuilder {
         }
 
         public UserGamificationProfile build() {
-            UserGamificationProfile profile = new UserGamificationProfile();
-            profile.setUserId(userId);
-            profile.setPoints(points);
-            profile.setLevel(level);
-            profile.setLastLevelUpDate(lastLevelUpDate);
-            profile.setStreaks(streaks);
-            profile.setEarnedBadges(earnedBadges);
-            profile.setQuests(quests);
-            return profile;
+            return UserGamificationProfile.builder()
+                    .userId(userId)
+                    .points(points)
+                    .level(level)
+                    .lastLevelUpDate(lastLevelUpDate)
+                    .streaks(streaks)
+                    .earnedBadges(earnedBadges)
+                    .quests(quests)
+                    .weeklyStreak(weeklyStreak)
+                    .longestWeeklyStreak(longestWeeklyStreak)
+                    .monthlyStreak(monthlyStreak)
+                    .longestMonthlyStreak(longestMonthlyStreak)
+                    .restDaysSinceLastWorkout(restDaysSinceLastWorkout)
+                    .totalWorkoutsCompleted(totalWorkoutsCompleted)
+                    .profileCreatedAt(Instant.now())
+                    .lastUpdated(Instant.now())
+                    .build();
         }
     }
 
