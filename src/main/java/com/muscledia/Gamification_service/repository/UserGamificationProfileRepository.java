@@ -101,6 +101,39 @@ public interface UserGamificationProfileRepository extends MongoRepository<UserG
     List<UserGamificationProfile> findTopUsersByLongestStreak(String streakType, Pageable pageable);
 
     /**
+     * Find users ordered by weekly streak
+     */
+    List<UserGamificationProfile> findAllByOrderByWeeklyStreakDesc(Pageable pageable);
+
+    /**
+     * Find users ordered by monthly streak
+     */
+    List<UserGamificationProfile> findAllByOrderByMonthlyStreakDesc(Pageable pageable);
+
+    /**
+     * Find users with active weekly streak
+     */
+    @Query("{ 'weeklyStreak' : { $gte: 1 } }")
+    List<UserGamificationProfile> findUsersWithActiveWeeklyStreak();
+
+    /**
+     * Find users with active monthly streak
+     */
+    @Query("{ 'monthlyStreak' : { $gte: 1 } }")
+    List<UserGamificationProfile> findUsersWithActiveMonthlyStreak();
+
+    /**
+     * Find users with weekly streak greater than or equal to value
+     */
+    List<UserGamificationProfile> findByWeeklyStreakGreaterThanEqual(int minStreak);
+
+    /**
+     * Find users with monthly streak greater than or equal to value
+     */
+    List<UserGamificationProfile> findByMonthlyStreakGreaterThanEqual(int minStreak);
+
+
+    /**
      * Check if user profile exists
      */
     boolean existsByUserId(Long userId);

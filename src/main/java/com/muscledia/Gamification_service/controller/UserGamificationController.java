@@ -2,7 +2,10 @@ package com.muscledia.Gamification_service.controller;
 
 import com.muscledia.Gamification_service.dto.request.StreakUpdateRequest;
 import com.muscledia.Gamification_service.dto.response.ApiResponse;
+import com.muscledia.Gamification_service.dto.response.LeaderboardPageResponse;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
+import com.muscledia.Gamification_service.model.enums.StreakType;
+import com.muscledia.Gamification_service.service.LeaderboardService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import com.muscledia.Gamification_service.utils.AuthenticationService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 public class UserGamificationController {
 
     private final UserGamificationService userGamificationService;
+    private final LeaderboardService leaderboardService;
 
     /**
      * Create or get user gamification profile (for current user)
@@ -96,65 +100,72 @@ public class UserGamificationController {
     }
 
     /**
-     * Update streak for current user
+     * Get all streak information for current user
      */
-    @PutMapping("/streaks")
-    public ResponseEntity<ApiResponse<UserGamificationProfile>> updateUserStreak(
-            @Valid @RequestBody StreakUpdateRequest request) {
-
+    @GetMapping("/streaks")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllStreaksInfo() {
         Long userId = AuthenticationService.getCurrentUserId();
-        log.info("Updating streak for current user {} - type: {}, continues: {}",
-                userId, request.getStreakType(), request.getStreakContinues());
+        log.info("Getting all streak info for user {}", userId);
 
         try {
-            UserGamificationProfile updatedProfile = userGamificationService.updateUserStreak(
-                    userId, request.getStreakType(), request.getStreakContinues());
-            return ResponseEntity.ok(ApiResponse.success("Streak updated successfully", updatedProfile));
+            Map<String, Object> streakInfo = userGamificationService.getUserStreakInfo(userId);
+            return ResponseEntity.ok(ApiResponse.success("Streak info retrieved", streakInfo));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            log.error("Error updating user streak", e);
+            log.error("Error getting streak info", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to update user streak"));
+                    .body(ApiResponse.error("Failed to retrieve streak info"));
         }
     }
 
     /**
-     * Get current user's current streak
+     * Get weekly streak leaderboard with pagination support
      */
-    @GetMapping("/streaks/{streakType}/current")
-    public ResponseEntity<ApiResponse<Integer>> getCurrentUserCurrentStreak(@PathVariable String streakType) {
+    @GetMapping("/leaderboards/weekly-streak")
+    public ResponseEntity<ApiResponse<LeaderboardPageResponse>> getWeeklyStreakLeaderboard(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+
         Long userId = AuthenticationService.getCurrentUserId();
-        log.info("Getting current streak for current user {} and type {}", userId, streakType);
+        log.info("Getting weekly streak leaderboard - page: {}, size: {}, user: {}", page, size, userId);
 
         try {
-            int currentStreak = userGamificationService.getUserCurrentStreak(userId, streakType);
-            return ResponseEntity.ok(ApiResponse.success(currentStreak));
+            LeaderboardPageResponse response = leaderboardService
+                    .getWeeklyStreakLeaderboardWithContext(userId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Weekly streak leaderboard retrieved successfully", response));
         } catch (Exception e) {
-            log.error("Error getting user current streak", e);
+            log.error("Error getting weekly streak leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to retrieve current streak"));
+                    .body(ApiResponse.error("Failed to retrieve weekly streak leaderboard"));
         }
     }
 
     /**
-     * Get current user's longest streak
+     * Get monthly streak leaderboard with pagination support
      */
-    @GetMapping("/streaks/{streakType}/longest")
-    public ResponseEntity<ApiResponse<Integer>> getCurrentUserLongestStreak(@PathVariable String streakType) {
+    @GetMapping("/leaderboards/monthly-streak")
+    public ResponseEntity<ApiResponse<LeaderboardPageResponse>> getMonthlyStreakLeaderboard(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+
         Long userId = AuthenticationService.getCurrentUserId();
-        log.info("Getting longest streak for current user {} and type {}", userId, streakType);
+        log.info("Getting monthly streak leaderboard - page: {}, size: {}, user: {}", page, size, userId);
 
         try {
-            int longestStreak = userGamificationService.getUserLongestStreak(userId, streakType);
-            return ResponseEntity.ok(ApiResponse.success(longestStreak));
+            LeaderboardPageResponse response = leaderboardService
+                    .getMonthlyStreakLeaderboardWithContext(userId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Monthly streak leaderboard retrieved successfully", response));
         } catch (Exception e) {
-            log.error("Error getting user longest streak", e);
+            log.error("Error getting monthly streak leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to retrieve longest streak"));
+                    .body(ApiResponse.error("Failed to retrieve monthly streak leaderboard"));
         }
     }
+
 
     /**
      * Get current user's points rank
@@ -259,15 +270,22 @@ public class UserGamificationController {
     }
 
     // PUBLIC LEADERBOARD ENDPOINTS - No user ID needed
+    /**
+     * Get points leaderboard with pagination support
+     */
     @GetMapping("/leaderboards/points")
-    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getPointsLeaderboard(
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
-        log.info("Getting points leaderboard with limit {} - Requested by user {}", limit,
-                AuthenticationService.getCurrentUserId());
+    public ResponseEntity<ApiResponse<LeaderboardPageResponse>> getPointsLeaderboard(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+
+        Long userId = AuthenticationService.getCurrentUserId();
+        log.info("Getting points leaderboard - page: {}, size: {}, user: {}", page, size, userId);
 
         try {
-            List<UserGamificationProfile> users = userGamificationService.getPointsLeaderboard(limit);
-            return ResponseEntity.ok(ApiResponse.success("Points leaderboard retrieved successfully", users));
+            LeaderboardPageResponse response = leaderboardService
+                    .getPointsLeaderboardWithContext(userId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Points leaderboard retrieved successfully", response));
         } catch (Exception e) {
             log.error("Error getting points leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -275,15 +293,22 @@ public class UserGamificationController {
         }
     }
 
+    /**
+     * Get level leaderboard with pagination support
+     */
     @GetMapping("/leaderboards/levels")
-    public ResponseEntity<ApiResponse<List<UserGamificationProfile>>> getLevelLeaderboard(
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
-        log.info("Getting level leaderboard with limit {} - Requested by user {}", limit,
-                AuthenticationService.getCurrentUserId());
+    public ResponseEntity<ApiResponse<LeaderboardPageResponse>> getLevelLeaderboard(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+
+        Long userId = AuthenticationService.getCurrentUserId();
+        log.info("Getting level leaderboard - page: {}, size: {}, user: {}", page, size, userId);
 
         try {
-            List<UserGamificationProfile> users = userGamificationService.getLevelLeaderboard(limit);
-            return ResponseEntity.ok(ApiResponse.success("Level leaderboard retrieved successfully", users));
+            LeaderboardPageResponse response = leaderboardService
+                    .getLevelLeaderboardWithContext(userId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Level leaderboard retrieved successfully", response));
         } catch (Exception e) {
             log.error("Error getting level leaderboard", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

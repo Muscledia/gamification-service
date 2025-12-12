@@ -1,20 +1,18 @@
 package com.muscledia.Gamification_service.service;
 
+import com.muscledia.Gamification_service.dto.response.LeaderboardResponse;
 import com.muscledia.Gamification_service.event.UserRegisteredEvent;
 import com.muscledia.Gamification_service.exception.UserProfileException;
-import com.muscledia.Gamification_service.model.UserBadge;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
+import com.muscledia.Gamification_service.model.enums.StreakType;
 import com.muscledia.Gamification_service.repository.UserGamificationProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -29,6 +27,7 @@ public class UserGamificationService {
     private final WelcomeAchievementService welcomeAchievementService;
     private final LeaderboardService leaderboardService;
     private final AnalyticsService analyticsService;
+    private final StreakService streakService;
 
     // ===========================================
     // EVENT PROCESSING METHODS
@@ -118,6 +117,73 @@ public class UserGamificationService {
         return analyticsService.getLongestStreak(userId, streakType);
     }
 
+    /**
+     * Update both weekly and monthly streaks after workout completion
+     */
+    @Transactional
+    public void updateStreaksForWorkout(Long userId, Instant workoutCompletedAt) {
+        log.info("Updating all streaks for workout completion - user: {}", userId);
+        streakService.updateStreaks(userId, workoutCompletedAt);
+    }
+
+    /**
+     * Get user's complete streak information
+     */
+    public Map<String, Object> getUserStreakInfo(Long userId) {
+        UserGamificationProfile profile = getUserProfile(userId);
+
+        Map<String, Object> streakInfo = new HashMap<>();
+
+        // Weekly streak info
+        Map<String, Object> weeklyInfo = new HashMap<>();
+        weeklyInfo.put("currentStreak", profile.getWeeklyStreak());
+        weeklyInfo.put("longestStreak", profile.getLongestWeeklyStreak());
+        weeklyInfo.put("periodStart", profile.getCurrentWeekStartDate());
+
+        // Monthly streak info
+        Map<String, Object> monthlyInfo = new HashMap<>();
+        monthlyInfo.put("currentStreak", profile.getMonthlyStreak());
+        monthlyInfo.put("longestStreak", profile.getLongestMonthlyStreak());
+        monthlyInfo.put("periodStart", profile.getCurrentMonthStartDate());
+
+        // General info
+        streakInfo.put("weekly", weeklyInfo);
+        streakInfo.put("monthly", monthlyInfo);
+        streakInfo.put("restDaysSinceLastWorkout", profile.getRestDaysSinceLastWorkout());
+        streakInfo.put("lastWorkoutDate", profile.getLastWorkoutDate());
+
+        return streakInfo;
+    }
+
+    /**
+     * Get specific streak type information
+     */
+    public Map<String, Object> getStreakByType(Long userId, StreakType type) {
+        UserGamificationProfile profile = getUserProfile(userId);
+
+        Map<String, Object> info = new HashMap<>();
+
+        switch (type) {
+            case WEEKLY:
+                info.put("currentStreak", profile.getWeeklyStreak());
+                info.put("longestStreak", profile.getLongestWeeklyStreak());
+                info.put("periodStart", profile.getCurrentWeekStartDate());
+                info.put("type", "WEEKLY");
+                break;
+            case MONTHLY:
+                info.put("currentStreak", profile.getMonthlyStreak());
+                info.put("longestStreak", profile.getLongestMonthlyStreak());
+                info.put("periodStart", profile.getCurrentMonthStartDate());
+                info.put("type", "MONTHLY");
+                break;
+        }
+
+        info.put("lastWorkoutDate", profile.getLastWorkoutDate());
+        info.put("restDays", profile.getRestDaysSinceLastWorkout());
+
+        return info;
+    }
+
     // ===========================================
     // RANKING METHODS (REQUIRED BY CONTROLLER)
     // ===========================================
@@ -134,22 +200,22 @@ public class UserGamificationService {
     // LEADERBOARD METHODS (REQUIRED BY CONTROLLER)
     // ===========================================
 
-    public List<UserGamificationProfile> getPointsLeaderboard(int limit) {
+    public List<LeaderboardResponse> getPointsLeaderboard(int limit) {
         log.info("Getting points leaderboard with limit {}", limit);
         return leaderboardService.getPointsLeaderboard(limit);
     }
 
-    public List<UserGamificationProfile> getLevelLeaderboard(int limit) {
+    public List<LeaderboardResponse> getLevelLeaderboard(int limit) {
         log.info("Getting level leaderboard with limit {}", limit);
         return leaderboardService.getLevelLeaderboard(limit);
     }
 
-    public List<UserGamificationProfile> getStreakLeaderboard(String streakType, int limit) {
+    public List<LeaderboardResponse> getStreakLeaderboard(String streakType, int limit) {
         log.info("Getting {} streak leaderboard with limit {}", streakType, limit);
         return leaderboardService.getStreakLeaderboard(streakType, limit);
     }
 
-    public List<UserGamificationProfile> getLongestStreakLeaderboard(String streakType, int limit) {
+    public List<LeaderboardResponse> getLongestStreakLeaderboard(String streakType, int limit) {
         log.info("Getting {} longest streak leaderboard with limit {}", streakType, limit);
         return leaderboardService.getLongestStreakLeaderboard(streakType, limit);
     }

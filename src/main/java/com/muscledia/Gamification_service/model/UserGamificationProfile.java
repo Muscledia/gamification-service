@@ -19,7 +19,7 @@ import java.util.Map;
 @Document(collection = "user_gamification_profiles")
 public class UserGamificationProfile {
     @Id
-    private String id;  // MongoDB requires String ID, not Long
+    private String id;
 
     @Indexed(unique = true)
     private Long userId;
@@ -41,11 +41,33 @@ public class UserGamificationProfile {
     @Builder.Default
     private List<UserQuestProgress> quests = new ArrayList<>();
 
-    // ADDED: Workout tracking fields
     @Builder.Default
     private Integer totalWorkoutsCompleted = 0;
 
     private Instant lastWorkoutDate;
+
+    // Weekly Streak Fields
+    @Builder.Default
+    private Integer weeklyStreak = 0;
+
+    @Builder.Default
+    private Integer longestWeeklyStreak = 0;
+
+    private Instant currentWeekStartDate;
+
+    // Monthly Streak Fields
+    @Builder.Default
+    private Integer monthlyStreak = 0;
+
+    @Builder.Default
+    private Integer longestMonthlyStreak = 0;
+
+    private Instant currentMonthStartDate;
+
+    // Shared Fields
+    @Builder.Default
+    private Integer restDaysSinceLastWorkout = 0;
+
     private Instant profileCreatedAt;
     private Instant lastUpdated;
 
@@ -61,15 +83,11 @@ public class UserGamificationProfile {
         private Integer longest = 0;
     }
 
-    /**
-     * Add a badge to the user's earned badges list
-     */
     public void addBadge(UserBadge badge) {
         if (this.earnedBadges == null) {
             this.earnedBadges = new ArrayList<>();
         }
 
-        // Avoid duplicates
         boolean alreadyHas = this.earnedBadges.stream()
                 .anyMatch(existingBadge -> badge.getBadgeId().equals(existingBadge.getBadgeId()));
 
@@ -79,18 +97,12 @@ public class UserGamificationProfile {
         }
     }
 
-    /**
-     * Check if user has a specific badge
-     */
     public boolean hasBadge(String badgeId) {
         if (earnedBadges == null) return false;
         return earnedBadges.stream()
                 .anyMatch(badge -> badgeId.equals(badge.getBadgeId()));
     }
 
-    /**
-     * Increment workout count
-     */
     public void incrementWorkoutCount() {
         if (this.totalWorkoutsCompleted == null) {
             this.totalWorkoutsCompleted = 0;
@@ -100,9 +112,6 @@ public class UserGamificationProfile {
         this.lastUpdated = Instant.now();
     }
 
-    /**
-     * Initialize default values for new profiles
-     */
     public void initializeDefaults() {
         if (this.earnedBadges == null) {
             this.earnedBadges = new ArrayList<>();
@@ -121,6 +130,21 @@ public class UserGamificationProfile {
         }
         if (this.totalWorkoutsCompleted == null) {
             this.totalWorkoutsCompleted = 0;
+        }
+        if (this.weeklyStreak == null) {
+            this.weeklyStreak = 0;
+        }
+        if (this.longestWeeklyStreak == null) {
+            this.longestWeeklyStreak = 0;
+        }
+        if (this.monthlyStreak == null) {
+            this.monthlyStreak = 0;
+        }
+        if (this.longestMonthlyStreak == null) {
+            this.longestMonthlyStreak = 0;
+        }
+        if (this.restDaysSinceLastWorkout == null) {
+            this.restDaysSinceLastWorkout = 0;
         }
     }
 }
