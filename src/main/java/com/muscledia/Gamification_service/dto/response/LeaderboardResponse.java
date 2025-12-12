@@ -1,11 +1,12 @@
 package com.muscledia.Gamification_service.dto.response;
 
 import lombok.Data;
+import lombok.Builder;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
 /**
- * Response DTO for leaderboard entries.
- * Contains user ranking information and relevant stats.
+ * Response DTO for leaderboard entries
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -16,10 +17,8 @@ public class LeaderboardResponse {
     private Integer points;
     private Integer level;
     private Integer currentStreak;
-    private String username; // Optional, if available
-    private String displayName; // Optional, if available
-
-    // Additional leaderboard-specific fields
+    private String username;
+    private String displayName;
     private Long totalWorkouts;
     private Long totalBadges;
     private Integer longestStreak;
