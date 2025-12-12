@@ -2,7 +2,7 @@ package com.muscledia.Gamification_service.event.handler;
 
 import com.muscledia.Gamification_service.event.WorkoutCompletedEvent;
 import com.muscledia.Gamification_service.service.AchievementService;
-import com.muscledia.Gamification_service.service.ProgressService;
+import com.muscledia.Gamification_service.service.StreakService;
 import com.muscledia.Gamification_service.service.UserGamificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ public class WorkoutEventHandler {
 
     private final UserGamificationService userGamificationService;
     private final AchievementService achievementService;
-    private final ProgressService progressService;
+    private final StreakService streakService;
 
     /**
      * CORE USER STORY IMPLEMENTATION: Process workout completion for achievements and challenges
@@ -38,23 +38,22 @@ public class WorkoutEventHandler {
                 event.getUserId(), event.getWorkoutId());
 
         try {
-            // 1. Update user profile and workout count
+            // 1. Update both weekly and monthly streaks
+            streakService.updateStreaks(event.getUserId(), event.getTimestamp());
+
+            // 2. Update user profile and workout count
             updateUserProfile(event);
 
-            // 2. Award points for completing workout
+            // 3. Award points for completing workout
             awardWorkoutPoints(event);
 
-            // 3. Update workout streak
+            // 4. Update workout streak (existing daily streak logic if you want to keep it)
             updateWorkoutStreak(event);
 
-            // 4. Process achievements (EXISTING FUNCTIONALITY)
+            // 5. Process achievements
             achievementService.processWorkoutAchievements(event);
 
-            // 5. Process challenge progress (NEW FUNCTIONALITY)
-            progressService.updateChallengeProgress(event);
-
-            log.info("SUCCESS: Workout completion processed for user {} - achievements and challenges updated",
-                    event.getUserId());
+            log.info("SUCCESS: Workout completion processed for user {}", event.getUserId());
 
         } catch (Exception e) {
             log.error("FAILED: Error processing workout completion for user {}: {}",
