@@ -25,6 +25,7 @@ public class ProfileCreationService {
 
         UserGamificationProfile profile = UserGamificationProfile.builder()
                 .userId(event.getUserId())
+                .username(event.getUsername())
                 .points(0)
                 .level(1)
                 .totalWorkoutsCompleted(0)
@@ -50,6 +51,7 @@ public class ProfileCreationService {
 
         UserGamificationProfile profile = UserGamificationProfile.builder()
                 .userId(userId)
+                .username(null)
                 .points(0)
                 .level(1)
                 .totalWorkoutsCompleted(0)
