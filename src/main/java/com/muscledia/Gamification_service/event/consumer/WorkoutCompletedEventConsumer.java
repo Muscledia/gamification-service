@@ -10,9 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -35,7 +32,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(value = "gamification.duplicate.consumer.enabled", havingValue = "true") // DISABLE by default
+@ConditionalOnProperty(value = "gamification.events.processing.enabled", havingValue = "true")
 public class WorkoutCompletedEventConsumer {
     private final WorkoutEventHandler workoutEventHandler;
     private final ObjectMapper objectMapper;
@@ -48,31 +45,38 @@ public class WorkoutCompletedEventConsumer {
      * - Triggers achievement processing
      * - Updates user gamification profile
      */
+
+    @KafkaListener(
+            topics = "${kafka.topics.workout-events:workout-events}",
+            groupId = "${kafka.consumer.group-id:gamification-service-group}",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
     public void handleWorkoutCompleted(
             ConsumerRecord<String, Object> record,
             Acknowledgment acknowledgment) {
 
         try {
-            Object eventObject = record.value(); // Extract the actual payload
+            Object eventObject = record.value();
 
-            log.info("RAW EVENT RECEIVED: class={}", eventObject.getClass().getSimpleName());
+            log.info("RAW EVENT RECEIVED: class={}, partition={}, offset={}",
+                    eventObject.getClass().getSimpleName(),
+                    record.partition(),
+                    record.offset());
 
             WorkoutCompletedEvent event = null;
 
-            // HANDLE DIFFERENT EVENT FORMATS
+            // Handle different event formats
             switch (eventObject) {
                 case WorkoutCompletedEvent workoutCompletedEvent -> {
                     event = workoutCompletedEvent;
                     log.info("Direct WorkoutCompletedEvent received");
                 }
                 case Map map -> {
-                    // Convert Map to WorkoutCompletedEvent
                     Map<String, Object> eventMap = (Map<String, Object>) eventObject;
                     event = objectMapper.convertValue(eventMap, WorkoutCompletedEvent.class);
                     log.info("Converted Map to WorkoutCompletedEvent: userId={}", event.getUserId());
                 }
                 case String s -> {
-                    // Parse JSON string
                     event = objectMapper.readValue(s, WorkoutCompletedEvent.class);
                     log.info("Parsed JSON string to WorkoutCompletedEvent");
                 }
@@ -89,20 +93,24 @@ public class WorkoutCompletedEventConsumer {
                 return;
             }
 
-            log.info("PROCESSING WORKOUT EVENT: userId={}, workoutId={}, duration={}min",
-                    event.getUserId(), event.getWorkoutId(), event.getDurationMinutes());
+            log.info("PROCESSING WORKOUT EVENT: userId={}, workoutId={}, duration={}min, sets={}, reps={}",
+                    event.getUserId(),
+                    event.getWorkoutId(),
+                    event.getDurationMinutes(),
+                    event.getTotalSets(),
+                    event.getTotalReps());
 
-            // Validate event before processing
+            // Validate event
             if (!event.isValid()) {
-                log.error("Invalid WorkoutCompletedEvent received: {}", event);
+                log.error("Invalid WorkoutCompletedEvent: {}", event);
                 acknowledgment.acknowledge();
                 return;
             }
 
-            // CORE IMPLEMENTATION: Process achievements
+            // Process the event
             workoutEventHandler.handleWorkoutCompleted(event);
 
-            // Acknowledge successful processing
+            // Acknowledge success
             acknowledgment.acknowledge();
 
             log.info("GAMIFICATION SUCCESS: Processed workout event for user {}", event.getUserId());
