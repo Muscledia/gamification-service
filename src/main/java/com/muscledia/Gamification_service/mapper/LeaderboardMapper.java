@@ -19,6 +19,7 @@ public class LeaderboardMapper {
     public LeaderboardResponse toLeaderboardResponse(UserGamificationProfile profile, int rank) {
         LeaderboardResponse response = new LeaderboardResponse();
         response.setUserId(profile.getUserId());
+        response.setUsername(profile.getUsername());
         response.setRank(rank);
         response.setPoints(profile.getPoints());
         response.setLevel(profile.getLevel());
