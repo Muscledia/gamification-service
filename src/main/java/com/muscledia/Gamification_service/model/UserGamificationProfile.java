@@ -27,6 +27,8 @@ public class UserGamificationProfile {
     @Builder.Default
     private Integer points = 0;
 
+    private String username;
+
     @Builder.Default
     private Integer level = 1;
 
