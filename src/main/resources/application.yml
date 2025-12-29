@@ -67,7 +67,7 @@ gamification:
       enabled: true # Disable the duplicate consumer
 
   scheduling:
-    enabled: ${SCHEDULING_ENABLED:false} # MVP: false, Prod: true
+    enabled: ${SCHEDULING_ENABLED:true} # MVP: false, Prod: true
     quest-generation:
       cron: ${QUEST_CRON:0 0 6 * * ?} # 6 AM daily
     leaderboard-refresh:
@@ -96,13 +96,13 @@ management:
 # Logging
 logging:
   level:
-    com.muscledia.Gamification_service: ${LOG_LEVEL:INFO}
-    com.muscledia.Gamification_service.service.ChallengeTemplateLoader: DEBUG
-    org.springframework: WARN
-    com.muscledia.Gamification_service.event: DEBUG
-    org.springframework.kafka: INFO
+    com.muscledia.Gamification_service: INFO  # User-facing events only
+    com.muscledia.Gamification_service.event.consumer: WARN  # Quiet processing
+    com.muscledia.Gamification_service.event.handler: INFO  # Celebrations only
+    com.muscledia.Gamification_service.service.BadgeService: INFO  # No criteria warnings
+    org.springframework.kafka: WARN
     org.apache.kafka: WARN
-    redis: ${REDIS_LOG_LEVEL:OFF}
+    org.mongodb: WARN
 
 # API Documentation - Enabled for testing
 springdoc:

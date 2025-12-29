@@ -101,10 +101,13 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
 
+# Logging
 logging:
   level:
-    com.muscledia: INFO
-    org.springframework.data.mongodb: INFO
-    org.springframework.data.redis: INFO
-    org.springframework.kafka: INFO
+    com.muscledia.Gamification_service: INFO  # User-facing events only
+    com.muscledia.Gamification_service.event.consumer: WARN  # Quiet processing
+    com.muscledia.Gamification_service.event.handler: INFO  # Celebrations only
+    com.muscledia.Gamification_service.service.BadgeService: INFO  # No criteria warnings
+    org.springframework.kafka: WARN
     org.apache.kafka: WARN
+    org.mongodb: WARN
