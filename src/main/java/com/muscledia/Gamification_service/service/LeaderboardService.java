@@ -106,17 +106,37 @@ public class LeaderboardService {
         return userProfileRepository.findAllByOrderByPointsDesc(pageable);
     }
 
+    /**
+     * Get current user's points info with CORRECT rank calculation
+     */
     private LeaderboardResponse getCurrentUserPointsInfo(Long userId) {
         try {
             UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
                     .orElseThrow(() -> new RuntimeException("User profile not found: " + userId));
 
-            int rank = (int) (userProfileRepository.countUsersWithHigherPoints(profile.getPoints()) + 1);
+            // FIX: Calculate actual rank from sorted list
+            int rank = calculateActualPointsRank(userId);
             return leaderboardMapper.toLeaderboardResponse(profile, rank);
         } catch (Exception e) {
             log.error("Error getting current user points info for user {}: {}", userId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Calculate actual points rank from sorted list
+     */
+    private int calculateActualPointsRank(Long userId) {
+        List<UserGamificationProfile> allUsers = userProfileRepository.findAllByOrderByPointsDesc();
+
+        for (int i = 0; i < allUsers.size(); i++) {
+            if (allUsers.get(i).getUserId().equals(userId)) {
+                return i + 1;
+            }
+        }
+
+        log.warn("User {} not found in points leaderboard", userId);
+        return -1;
     }
 
     // ===========================================
@@ -190,17 +210,39 @@ public class LeaderboardService {
         return userProfileRepository.findAllByOrderByLevelDesc(pageable);
     }
 
+    /**
+     * Get current user's level info with CORRECT rank calculation
+     */
     private LeaderboardResponse getCurrentUserLevelInfo(Long userId) {
         try {
             UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
                     .orElseThrow(() -> new RuntimeException("User profile not found: " + userId));
 
-            int rank = (int) (userProfileRepository.countUsersWithHigherLevel(profile.getLevel()) + 1);
+            // FIX: Calculate actual rank from sorted list
+            int rank = calculateActualLevelRank(userId);
             return leaderboardMapper.toLeaderboardResponse(profile, rank);
         } catch (Exception e) {
             log.error("Error getting current user level info for user {}: {}", userId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Calculate actual level rank from sorted list
+     */
+    private int calculateActualLevelRank(Long userId) {
+        // Get ALL users sorted by level (same way as leaderboard)
+        List<UserGamificationProfile> allUsers = userProfileRepository.findAllByOrderByLevelDesc();
+
+        // Find user's position in sorted list
+        for (int i = 0; i < allUsers.size(); i++) {
+            if (allUsers.get(i).getUserId().equals(userId)) {
+                return i + 1; // Rank is 1-indexed
+            }
+        }
+
+        log.warn("User {} not found in level leaderboard", userId);
+        return -1; // User not found
     }
 
     // ===========================================
@@ -270,17 +312,71 @@ public class LeaderboardService {
         return leaderboardMapper.toWeeklyStreakResponseList(topUsers);
     }
 
+    /**
+     * Get current user's weekly streak info with CORRECT rank calculation
+     */
     private LeaderboardResponse getCurrentUserWeeklyStreakInfo(Long userId) {
         try {
             UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
                     .orElseThrow(() -> new RuntimeException("User profile not found: " + userId));
 
-            int rank = calculateWeeklyStreakRank(profile.getWeeklyStreak());
+            // FIX: Calculate actual rank from sorted list
+            int rank = calculateActualWeeklyStreakRank(userId);
             return leaderboardMapper.toWeeklyStreakResponse(profile, rank);
         } catch (Exception e) {
             log.error("Error getting current user weekly streak info for user {}: {}", userId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Calculate actual weekly streak rank from sorted list
+     */
+    private int calculateActualWeeklyStreakRank(Long userId) {
+        List<UserGamificationProfile> allUsers = userProfileRepository.findAllByOrderByWeeklyStreakDesc();
+
+        for (int i = 0; i < allUsers.size(); i++) {
+            if (allUsers.get(i).getUserId().equals(userId)) {
+                return i + 1;
+            }
+        }
+
+        log.warn("User {} not found in weekly streak leaderboard", userId);
+        return -1;
+    }
+
+
+    /**
+     * Get current user's monthly streak info with CORRECT rank calculation
+     */
+    private LeaderboardResponse getCurrentUserMonthlyStreakInfo(Long userId) {
+        try {
+            UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
+                    .orElseThrow(() -> new RuntimeException("User profile not found: " + userId));
+
+            // ⬅️ FIX: Calculate actual rank from sorted list
+            int rank = calculateActualMonthlyStreakRank(userId);
+            return leaderboardMapper.toMonthlyStreakResponse(profile, rank);
+        } catch (Exception e) {
+            log.error("Error getting current user monthly streak info for user {}: {}", userId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Calculate actual monthly streak rank from sorted list
+     */
+    private int calculateActualMonthlyStreakRank(Long userId) {
+        List<UserGamificationProfile> allUsers = userProfileRepository.findAllByOrderByMonthlyStreakDesc();
+
+        for (int i = 0; i < allUsers.size(); i++) {
+            if (allUsers.get(i).getUserId().equals(userId)) {
+                return i + 1;
+            }
+        }
+
+        log.warn("User {} not found in monthly streak leaderboard", userId);
+        return -1;
     }
 
     private int calculateWeeklyStreakRank(Integer weeklyStreak) {
@@ -357,25 +453,7 @@ public class LeaderboardService {
         return leaderboardMapper.toMonthlyStreakResponseList(topUsers);
     }
 
-    private LeaderboardResponse getCurrentUserMonthlyStreakInfo(Long userId) {
-        try {
-            UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
-                    .orElseThrow(() -> new RuntimeException("User profile not found: " + userId));
 
-            int rank = calculateMonthlyStreakRank(profile.getMonthlyStreak());
-            return leaderboardMapper.toMonthlyStreakResponse(profile, rank);
-        } catch (Exception e) {
-            log.error("Error getting current user monthly streak info for user {}: {}", userId, e.getMessage());
-            return null;
-        }
-    }
-
-    private int calculateMonthlyStreakRank(Integer monthlyStreak) {
-        if (monthlyStreak == null) monthlyStreak = 0;
-        long usersWithHigherStreak = userProfileRepository
-                .findByMonthlyStreakGreaterThanEqual(monthlyStreak + 1).size();
-        return (int) (usersWithHigherStreak + 1);
-    }
 
     // ===========================================
     // HELPER METHODS

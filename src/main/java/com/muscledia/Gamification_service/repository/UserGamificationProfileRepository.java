@@ -170,4 +170,25 @@ public interface UserGamificationProfileRepository extends MongoRepository<UserG
      */
     @Query(value = "{ 'level' : { $gt: ?0 } }", count = true)
     long countUsersWithHigherLevel(int userLevel);
+
+
+    /**
+     * Get ALL users sorted by level (for accurate rank calculation)
+     */
+    List<UserGamificationProfile> findAllByOrderByLevelDesc();
+
+    /**
+     * Get ALL users sorted by points (for accurate rank calculation)
+     */
+    List<UserGamificationProfile> findAllByOrderByPointsDesc();
+
+    /**
+     * Get ALL users sorted by weekly streak (for accurate rank calculation)
+     */
+    List<UserGamificationProfile> findAllByOrderByWeeklyStreakDesc();
+
+    /**
+     * Get ALL users sorted by monthly streak (for accurate rank calculation)
+     */
+    List<UserGamificationProfile> findAllByOrderByMonthlyStreakDesc();
 }
