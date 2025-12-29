@@ -1,7 +1,11 @@
 package com.muscledia.Gamification_service.service;
 
+import com.muscledia.Gamification_service.event.StreakUpdatedEvent;
+import com.muscledia.Gamification_service.event.publisher.EventPublisher;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.repository.UserGamificationProfileRepository;
+import lombok.Builder;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,16 +24,23 @@ import java.time.temporal.ChronoUnit;
 public class StreakService {
 
     private final UserGamificationProfileRepository userProfileRepository;
+    private final LeaderboardChangeDetectionService leaderboardDetection;
+    private final EventPublisher eventPublisher;
 
     /**
      * Update both weekly and monthly streaks when a workout is completed
+     * RETURNS: StreakUpdateResult for celebration logging
      */
     @Transactional
-    public void updateStreaks(Long userId, Instant workoutCompletedAt) {
+    public StreakUpdateResult updateStreaks(Long userId, Instant workoutCompletedAt) {
         log.info("Updating streaks for user {} at {}", userId, workoutCompletedAt);
 
         UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseGet(() -> createNewProfile(userId));
+
+        // Capture old values for leaderboard change detection
+        int oldWeeklyStreak = profile.getWeeklyStreak() != null ? profile.getWeeklyStreak() : 0;
+        int oldMonthlyStreak = profile.getMonthlyStreak() != null ? profile.getMonthlyStreak() : 0;
 
         // Update weekly streak
         updateWeeklyStreak(profile, workoutCompletedAt);
@@ -43,8 +54,88 @@ public class StreakService {
         profile.setLastUpdated(Instant.now());
 
         userProfileRepository.save(profile);
+
+        // Get new values
+        int newWeeklyStreak = profile.getWeeklyStreak() != null ? profile.getWeeklyStreak() : 0;
+        int newMonthlyStreak = profile.getMonthlyStreak() != null ? profile.getMonthlyStreak() : 0;
+
+        // Check for leaderboard changes
+        leaderboardDetection.checkWeeklyStreakRankChange(userId, oldWeeklyStreak, newWeeklyStreak);
+        leaderboardDetection.checkMonthlyStreakRankChange(userId, oldMonthlyStreak, newMonthlyStreak);
+
+        // ⬅️ PUBLISH STREAK EVENTS
+        if (oldWeeklyStreak != newWeeklyStreak) {
+            publishStreakEvent(userId, "WEEKLY", oldWeeklyStreak, newWeeklyStreak,
+                    profile.getLongestWeeklyStreak());
+        }
+
+        if (oldMonthlyStreak != newMonthlyStreak) {
+            publishStreakEvent(userId, "MONTHLY", oldMonthlyStreak, newMonthlyStreak,
+                    profile.getLongestMonthlyStreak());
+        }
+
         log.info("Updated streaks for user {} - Weekly: {}, Monthly: {}",
-                userId, profile.getWeeklyStreak(), profile.getMonthlyStreak());
+                userId, newWeeklyStreak, newMonthlyStreak);
+
+        return StreakUpdateResult.builder()
+                .userId(userId)
+                .weeklyStreak(newWeeklyStreak)
+                .monthlyStreak(newMonthlyStreak)
+                .weeklyStreakIncreased(newWeeklyStreak > oldWeeklyStreak)
+                .monthlyStreakIncreased(newMonthlyStreak > oldMonthlyStreak)
+                .isNewMilestone(isStreakMilestone(newWeeklyStreak) || isStreakMilestone(newMonthlyStreak))
+                .currentStreak(newWeeklyStreak)
+                .continues(newWeeklyStreak > oldWeeklyStreak)
+                .build();
+    }
+
+    /**
+     * Publish streak updated event
+     */
+    private void publishStreakEvent(Long userId, String streakType, int oldStreak,
+                                    int newStreak, int longestStreak) {
+        try {
+            String action = determineStreakAction(oldStreak, newStreak);
+
+            StreakUpdatedEvent event = StreakUpdatedEvent.builder()
+                    .userId(userId)
+                    .streakType(streakType)
+                    .currentStreak(newStreak)
+                    .previousStreak(oldStreak)
+                    .longestStreak(longestStreak)
+                    .streakAction(action)
+                    .triggeringActivity("WORKOUT_COMPLETED")
+                    .timestamp(Instant.now())
+                    .build();
+
+            eventPublisher.publishStreakUpdated(event);
+
+            log.debug("Published {} streak event for user {}: {} → {}",
+                    streakType, userId, oldStreak, newStreak);
+
+        } catch (Exception e) {
+            log.error("Failed to publish streak event for user {}: {}", userId, e.getMessage());
+            // Don't fail the transaction if event publishing fails
+        }
+    }
+
+    /**
+     * Determine what action occurred with the streak
+     */
+    private String determineStreakAction(int oldStreak, int newStreak) {
+        if (newStreak == 0) return "RESET";
+        if (newStreak > oldStreak) return "INCREASED";
+        if (newStreak < oldStreak) return "DECREASED";
+        return "MAINTAINED";
+    }
+
+    /**
+     * Check if streak value is a milestone
+     */
+    private boolean isStreakMilestone(int streak) {
+        return streak == 7 || streak == 14 || streak == 30 ||
+                streak == 60 || streak == 100 ||
+                (streak > 100 && streak % 50 == 0);
     }
 
     /**
@@ -247,5 +338,26 @@ public class StreakService {
                 .build();
         profile.initializeDefaults();
         return profile;
+    }
+
+    // ==================== RESULT CLASS ====================
+
+    /**
+     * Result object for streak updates
+     * Used for celebration logging in WorkoutEventHandler
+     */
+    @Data
+    @Builder
+    public static class StreakUpdateResult {
+        private Long userId;
+        private Integer weeklyStreak;
+        private Integer monthlyStreak;
+        private Boolean weeklyStreakIncreased;
+        private Boolean monthlyStreakIncreased;
+        private Boolean isNewMilestone;
+
+        // For backward compatibility with WorkoutEventHandler
+        private Integer currentStreak;  // Maps to weeklyStreak
+        private Boolean continues;      // Maps to weeklyStreakIncreased
     }
 }

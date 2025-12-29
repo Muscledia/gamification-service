@@ -19,52 +19,85 @@ import java.util.HashMap;
 @Slf4j
 public class ProfileCreationService {
     private final UserGamificationProfileRepository profileRepository;
+    private final NameGeneratorService nameGenerator;
 
     public UserGamificationProfile createProfile(UserRegisteredEvent event) {
-        log.debug("Creating profile from registration event for user {}", event.getUserId());
+        log.info("Creating gamification profile for user {}", event.getUserId());
+
+        String username = event.getUsername();
+        String displayName = null;
+
+        if (username == null || username.trim().isEmpty() || username.startsWith("User#")) {
+            // Generate realistic username for imaginary users
+            username = nameGenerator.generateUsername();
+            displayName = nameGenerator.generateDisplayName();
+            log.info("Generated imaginary username '{}' and displayName '{}' for user {}",
+                    username, displayName, event.getUserId());
+        } else {
+            // Real user - extract display name from event or use username
+            displayName = extractDisplayName(event);
+        }
 
         UserGamificationProfile profile = UserGamificationProfile.builder()
                 .userId(event.getUserId())
-                .username(event.getUsername())
+                .username(username)
                 .points(0)
                 .level(1)
+                .fitnessCoins(0)
+                .lifetimeCoinsEarned(0)
                 .totalWorkoutsCompleted(0)
-                .lastLevelUpDate(Instant.now())
-                .streaks(new HashMap<>())
-                .earnedBadges(new ArrayList<>())
-                .quests(new ArrayList<>())
-                .profileCreatedAt(event.getRegistrationDate())
-                .lastUpdated(Instant.now())
-                .build();
-
-        // Apply user preferences from registration
-        applyRegistrationPreferences(profile, event);
-
-        // Initialize default values
-        profile.initializeDefaults();
-
-        return profileRepository.save(profile);
-    }
-
-    public UserGamificationProfile createDefaultProfile(Long userId) {
-        log.debug("Creating default profile for user {}", userId);
-
-        UserGamificationProfile profile = UserGamificationProfile.builder()
-                .userId(userId)
-                .username(null)
-                .points(0)
-                .level(1)
-                .totalWorkoutsCompleted(0)
-                .lastLevelUpDate(Instant.now())
-                .streaks(new HashMap<>())
-                .earnedBadges(new ArrayList<>())
-                .quests(new ArrayList<>())
+                .weeklyStreak(0)
+                .longestWeeklyStreak(0)
+                .monthlyStreak(0)
+                .longestMonthlyStreak(0)
+                .restDaysSinceLastWorkout(0)
                 .profileCreatedAt(Instant.now())
                 .lastUpdated(Instant.now())
                 .build();
 
         profile.initializeDefaults();
         return profileRepository.save(profile);
+    }
+
+    public UserGamificationProfile createDefaultProfile(Long userId) {
+        log.debug("Creating default profile for user {}", userId);
+
+        // ⬅️ GENERATE NAMES FOR DEFAULT PROFILES TOO
+        String username = nameGenerator.generateUsername();
+        String displayName = nameGenerator.generateDisplayName();
+
+        UserGamificationProfile profile = UserGamificationProfile.builder()
+                .userId(userId)
+                .username(username)
+                .points(0)
+                .level(1)
+                .fitnessCoins(0)
+                .lifetimeCoinsEarned(0)
+                .totalWorkoutsCompleted(0)
+                .weeklyStreak(0)
+                .longestWeeklyStreak(0)
+                .monthlyStreak(0)
+                .longestMonthlyStreak(0)
+                .restDaysSinceLastWorkout(0)
+                .profileCreatedAt(Instant.now())
+                .lastUpdated(Instant.now())
+                .build();
+
+        profile.initializeDefaults();
+        return profileRepository.save(profile);
+    }
+
+    private String extractDisplayName(UserRegisteredEvent event) {
+        // Try to get display name from userPreferences
+        if (event.getUserPreferences() != null) {
+            Object displayNameObj = event.getUserPreferences().get("displayName");
+            if (displayNameObj != null) {
+                return displayNameObj.toString();
+            }
+        }
+
+        // Fallback to username
+        return event.getUsername() != null ? event.getUsername() : nameGenerator.generateDisplayName();
     }
 
     private void applyRegistrationPreferences(UserGamificationProfile profile, UserRegisteredEvent event) {
