@@ -11,6 +11,50 @@ import com.muscledia.Gamification_service.model.enums.ObjectiveType;
  * COUPLING: Low - only knows about entity and DTO
  */
 public class ChallengeMapper {
+
+    /**
+     * Get user-friendly progress unit based on objective type
+     */
+    public static String getProgressUnit(ObjectiveType objectiveType) {
+        if (objectiveType == null) {
+            return "points";
+        }
+
+        return switch (objectiveType) {
+            case EXERCISES -> "exercises";
+            case REPS -> "reps";
+            case DURATION -> "minutes";
+            case TIME_BASED -> "workouts";
+            case ACHIEVEMENT_BASED -> "achievements";
+            case VOLUME_BASED -> "kg";
+            case CALORIES -> "calories";
+            case PERSONAL_RECORDS -> "PRs";
+        };
+    }
+
+    /**
+     * Get display name for objective type
+     */
+    public static String getObjectiveDisplayName(ObjectiveType objectiveType) {
+        if (objectiveType == null) {
+            return "Unknown";
+        }
+
+        return switch (objectiveType) {
+            case EXERCISES -> "Complete Exercises";
+            case REPS -> "Complete Reps";
+            case DURATION -> "Exercise Duration";
+            case TIME_BASED -> "Workout Count";
+            case ACHIEVEMENT_BASED -> "Maintain Streak";
+            case VOLUME_BASED -> "Lift Volume";
+            case CALORIES -> "Burn Calories";
+            case PERSONAL_RECORDS -> "Break Personal Records";
+        };
+    }
+
+    /**
+     * Convert Challenge entity to DTO
+     */
     public static ChallengeDto toDto(Challenge challenge) {
         if (challenge == null) {
             return null;
@@ -21,65 +65,15 @@ public class ChallengeMapper {
                 .name(challenge.getName())
                 .description(challenge.getDescription())
                 .type(challenge.getType())
-                .objective(challenge.getObjectiveType())
+                .category(challenge.getCategory())
+                .objectiveType(challenge.getObjectiveType())
                 .targetValue(challenge.getTargetValue())
                 .rewardPoints(challenge.getRewardPoints())
-                .unlockedQuestId(challenge.getUnlockedQuestId())
-                .difficulty(challenge.getDifficultyLevel())
-                .autoEnroll(challenge.isAutoEnroll())
+                .difficultyLevel(challenge.getDifficultyLevel())
+                .progressUnit(getProgressUnit(challenge.getObjectiveType()))
                 .startDate(challenge.getStartDate())
                 .endDate(challenge.getEndDate())
-                .isActive(challenge.isActive())
-                .progressUnit(getProgressUnit(challenge.getObjectiveType()))
-                .formattedTarget(formatTarget(challenge.getTargetValue(), challenge.getObjectiveType()))
-                .estimatedDuration(challenge.getType().getDisplayName())
+                .active(challenge.isActive())
                 .build();
-    }
-
-    public static Challenge toEntity(ChallengeDto dto) {
-        if (dto == null) {
-            return null;
-        }
-
-        return Challenge.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .description(dto.getDescription())
-                .type(dto.getType())
-                .objectiveType(dto.getObjective())
-                .targetValue(dto.getTargetValue())
-                .rewardPoints(dto.getRewardPoints())
-                .unlockedQuestId(dto.getUnlockedQuestId())
-                .difficultyLevel(dto.getDifficulty())
-                .autoEnroll(dto.isAutoEnroll())
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
-                .build();
-    }
-
-    public static String getProgressUnit(ObjectiveType objective) {
-        return switch (objective) {
-            case REPS -> "reps";
-            case DURATION -> "minutes";
-            case EXERCISES -> "exercises";
-            case WEIGHT_LIFTED -> "kg";
-            case TIME_BASED -> "workouts";
-            case ACHIEVEMENT_BASED -> "achievements";
-            default -> "points";
-        };
-    }
-
-    private static String formatTarget(Integer targetValue, ObjectiveType objective) {
-        if (targetValue == null) return "0";
-
-        return switch (objective) {
-            case REPS -> targetValue + " reps";
-            case DURATION -> targetValue + " minutes";
-            case EXERCISES -> targetValue + " exercises";
-            case WEIGHT_LIFTED -> targetValue + " kg";
-            case TIME_BASED -> targetValue + " workouts";
-            case ACHIEVEMENT_BASED -> targetValue + " achievements";
-            default -> targetValue + " points";
-        };
     }
 }

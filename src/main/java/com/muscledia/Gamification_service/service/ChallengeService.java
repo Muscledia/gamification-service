@@ -9,10 +9,8 @@ import com.muscledia.Gamification_service.mapper.ChallengeMapper;
 import com.muscledia.Gamification_service.model.Challenge;
 import com.muscledia.Gamification_service.model.UserChallenge;
 import com.muscledia.Gamification_service.model.UserJourneyProfile;
-import com.muscledia.Gamification_service.model.UserPerformanceMetrics;
 import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
 import com.muscledia.Gamification_service.model.enums.ChallengeType;
-import com.muscledia.Gamification_service.model.enums.DifficultyLevel;
 import com.muscledia.Gamification_service.repository.ChallengeRepository;
 import com.muscledia.Gamification_service.repository.UserChallengeRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +22,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 /**
  * PURPOSE: Core challenge business operations
  * RESPONSIBILITY: Orchestrate challenge lifecycle operations
  * COUPLING: Low - depends only on interfaces
  */
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -41,11 +37,9 @@ public class ChallengeService {
     private final EventPublisher eventPublisher;
     private final UserJourneyProfileService userJourneyService;
     private final ChallengeProgressionService challengeProgressionService;
-    private final UserPerformanceAnalyzer performanceAnalyzer;
-
 
     /**
-     * ENHANCED: Get challenges based on user progression
+     * Get challenges based on user progression
      */
     public List<Challenge> getAvailableChallenges(Long userId, ChallengeType type) {
         log.info("Getting {} challenges for user {}", type, userId);
@@ -78,26 +72,16 @@ public class ChallengeService {
 
         try {
             Challenge challenge = challengeRepository.findById(challengeId)
-                    .orElseThrow(() -> {
-                        log.warn("Challenge not found: {}", challengeId);
-                        return new ChallengeNotFoundException("Challenge not found: " + challengeId);
-                    });
-
-            log.debug("Found challenge: {} for user {}", challenge.getName(), userId);
+                    .orElseThrow(() -> new ChallengeNotFoundException("Challenge not found: " + challengeId));
 
             validateCanStart(userId, challenge);
 
             UserChallenge userChallenge = createUserChallenge(userId, challenge);
-
-            // ENHANCEMENT: Set challenge name and details for better UX
             userChallenge.setChallengeName(challenge.getName());
             userChallenge.setChallengeType(challenge.getType());
             userChallenge.setProgressUnit(ChallengeMapper.getProgressUnit(challenge.getObjectiveType()));
 
             UserChallenge saved = userChallengeRepository.save(userChallenge);
-
-            log.debug("Created user challenge with ID: {}", saved.getId());
-
             publishChallengeStartedEvent(saved, challenge);
 
             log.info("Successfully started challenge {} for user {}", challengeId, userId);
@@ -128,28 +112,11 @@ public class ChallengeService {
         }
     }
 
-    // ENHANCED: Update difficulty determination
-    private DifficultyLevel determineUserDifficulty(Long userId) {
-        UserJourneyProfile journey = userJourneyService.getUserJourney(userId);
-        UserPerformanceMetrics performance = performanceAnalyzer.analyzeUser(userId);
-
-        // Dynamic difficulty based on completion rate and level
-        if (performance.getRecentCompletionRate() > 0.8 && journey.getCurrentLevel() > 5) {
-            return DifficultyLevel.INTERMEDIATE;
-        } else if (performance.getRecentCompletionRate() > 0.9 && journey.getCurrentLevel() > 10) {
-            return DifficultyLevel.ADVANCED;
-        }
-        return DifficultyLevel.BEGINNER;
-    }
-
     private boolean userAlreadyStarted(Long userId, String challengeId) {
         return userChallengeRepository.findByUserIdAndChallengeId(userId, challengeId).isPresent();
     }
 
-
     private void validateCanStart(Long userId, Challenge challenge) {
-        log.debug("Validating challenge start for user {} and challenge {}", userId, challenge.getId());
-
         if (!challenge.isActive()) {
             throw new ChallengeNotActiveException("Challenge is not active: " + challenge.getId());
         }
@@ -178,22 +145,9 @@ public class ChallengeService {
 
     private void publishChallengeStartedEvent(UserChallenge userChallenge, Challenge challenge) {
         try {
-            // Add debug logging to identify the null field
-            log.debug("Publishing event - UserChallenge: userId={}, challengeId={}, startedAt={}",
-                    userChallenge.getUserId(), userChallenge.getChallengeId(), userChallenge.getStartedAt());
-            log.debug("Publishing event - Challenge: name={}, type={}",
-                    challenge.getName(), challenge.getType());
-
             ChallengeStartedEvent event = ChallengeStartedEvent.of(userChallenge, challenge);
-
-            // Additional validation log
-            log.debug("Created event: {}", event);
-
             eventPublisher.publishChallengeStarted(event);
             log.debug("Successfully published challenge started event for user {}", userChallenge.getUserId());
-
-        } catch (IllegalArgumentException e) {
-            log.error("Event creation failed due to validation: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Failed to publish challenge started event: {}", e.getMessage(), e);
         }

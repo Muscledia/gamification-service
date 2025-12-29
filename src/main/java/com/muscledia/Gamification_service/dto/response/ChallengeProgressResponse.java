@@ -1,22 +1,52 @@
-package com.muscledia.Gamification_service.mapper;
+package com.muscledia.Gamification_service.dto.response;
 
-import com.muscledia.Gamification_service.dto.request.UserChallengeDto;
 import com.muscledia.Gamification_service.model.UserChallenge;
 import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
+import com.muscledia.Gamification_service.model.enums.ChallengeType;
+import lombok.Builder;
+import lombok.Data;
 
 import java.time.Duration;
 import java.time.Instant;
 
-public class UserChallengeMapper {
+@Data
+@Builder
+public class ChallengeProgressResponse {
+    private String id;
+    private String challengeId;
+    private String challengeName;
+    private ChallengeType challengeType;
+    private ChallengeStatus status;
 
-    public static UserChallengeDto toDto(UserChallenge userChallenge) {
-        if (userChallenge == null) {
-            return null;
-        }
+    // Progress
+    private Integer currentProgress;
+    private Integer targetValue;
+    private String progressUnit;
+    private Double progressPercentage;
+    private String progressDisplay;  // "45/50 reps"
 
-        return UserChallengeDto.builder()
+    // Status indicators
+    private boolean isNearCompletion;  // >= 75%
+    private boolean isCompleted;
+    private boolean isExpired;
+
+    // Time tracking
+    private Instant startedAt;
+    private Instant expiresAt;
+    private String timeRemaining;  // "2 hours left"
+    private Integer daysActive;
+
+    // Rewards
+    private Integer pointsEarned;
+    private boolean rewardClaimed;
+
+    // UI helpers
+    private String statusDisplay;
+    private String statusColor;  // "green", "yellow", "red"
+
+    public static ChallengeProgressResponse fromUserChallenge(UserChallenge userChallenge) {
+        return ChallengeProgressResponse.builder()
                 .id(userChallenge.getId())
-                .userId(userChallenge.getUserId())
                 .challengeId(userChallenge.getChallengeId())
                 .challengeName(userChallenge.getChallengeName())
                 .challengeType(userChallenge.getChallengeType())
@@ -26,26 +56,25 @@ public class UserChallengeMapper {
                 .progressUnit(userChallenge.getProgressUnit())
                 .progressPercentage(userChallenge.getProgressPercentage())
                 .progressDisplay(userChallenge.getProgressDisplay())
+                .isNearCompletion(userChallenge.isNearCompletion())
+                .isCompleted(userChallenge.getStatus() == ChallengeStatus.COMPLETED)
+                .isExpired(userChallenge.isExpired())
                 .startedAt(userChallenge.getStartedAt())
                 .expiresAt(userChallenge.getExpiresAt())
-                .completedAt(userChallenge.getCompletedAt())
                 .timeRemaining(calculateTimeRemaining(userChallenge.getExpiresAt()))
-                .isNearCompletion(userChallenge.isNearCompletion())
+                .daysActive(calculateDaysActive(userChallenge.getStartedAt()))
                 .pointsEarned(userChallenge.getPointsEarned())
+                .rewardClaimed(userChallenge.isRewardClaimed())
                 .statusDisplay(userChallenge.getStatusDisplay())
                 .statusColor(getStatusColor(userChallenge))
                 .build();
     }
 
     private static String calculateTimeRemaining(Instant expiresAt) {
-        if (expiresAt == null) {
-            return "No expiry";
-        }
+        if (expiresAt == null) return "No expiry";
 
         Duration duration = Duration.between(Instant.now(), expiresAt);
-        if (duration.isNegative()) {
-            return "Expired";
-        }
+        if (duration.isNegative()) return "Expired";
 
         long hours = duration.toHours();
         if (hours < 24) {
@@ -54,6 +83,11 @@ public class UserChallengeMapper {
 
         long days = duration.toDays();
         return days + " days left";
+    }
+
+    private static Integer calculateDaysActive(Instant startedAt) {
+        if (startedAt == null) return 0;
+        return (int) Duration.between(startedAt, Instant.now()).toDays();
     }
 
     private static String getStatusColor(UserChallenge challenge) {

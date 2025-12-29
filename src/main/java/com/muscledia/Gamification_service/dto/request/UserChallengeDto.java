@@ -1,43 +1,32 @@
 package com.muscledia.Gamification_service.dto.request;
 
-
 import com.muscledia.Gamification_service.model.enums.ChallengeStatus;
-import lombok.AllArgsConstructor;
+import com.muscledia.Gamification_service.model.enums.ChallengeType;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-/**
- * PURPOSE: Data transfer object for UserChallenge entity
- * RESPONSIBILITY: Expose user challenge progress to API clients
- * COUPLING: None - pure data transfer
- */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserChallengeDto {
-
     private String id;
+    private Long userId;
     private String challengeId;
     private String challengeName;
-    private String challengeType;
+    private ChallengeType challengeType;
     private ChallengeStatus status;
     private Integer currentProgress;
     private Integer targetValue;
-    private double progressPercentage;
     private String progressUnit;
+    private Double progressPercentage;
+    private String progressDisplay;
     private Instant startedAt;
-    private Instant completedAt;
     private Instant expiresAt;
-    private Integer pointsEarned;
-
-    // UI-friendly fields
-    private String statusDisplayName;
-    private String formattedProgress;
+    private Instant completedAt;
     private String timeRemaining;
-    private boolean canComplete;
-    private String completionMessage;
+    private boolean isNearCompletion;
+    private Integer pointsEarned;
+    private String statusDisplay;
+    private String statusColor;
 }

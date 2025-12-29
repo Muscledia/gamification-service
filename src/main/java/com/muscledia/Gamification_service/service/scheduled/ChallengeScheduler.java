@@ -25,7 +25,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty("gamification.scheduling.enabled")
+@ConditionalOnProperty(value = "gamification.scheduling.enabled", havingValue = "true")
 public class ChallengeScheduler {
 
     private final GenerationService generationService;
