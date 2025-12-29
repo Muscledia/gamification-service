@@ -225,4 +225,16 @@ public class BadgeEarnedEvent extends BaseEvent {
 
         return message.toString();
     }
+
+    /**
+     * Check if badge is rare (RARE, EPIC, or LEGENDARY)
+     */
+    public boolean isRareBadge() {
+        if (rarity == null) return false;
+
+        String rarityUpper = rarity.trim().toUpperCase();
+        return rarityUpper.equals("RARE") ||
+                rarityUpper.equals("EPIC") ||
+                rarityUpper.equals("LEGENDARY");
+    }
 }

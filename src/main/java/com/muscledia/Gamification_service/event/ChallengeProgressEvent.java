@@ -1,32 +1,34 @@
 package com.muscledia.Gamification_service.event;
 
-
-import com.muscledia.Gamification_service.model.UserChallenge;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
-/**
- * PURPOSE: Event data for challenge progress update
- */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChallengeProgressEvent extends BaseEvent {
-    private Long userId;
+
+    // Core identifiers
     private String challengeId;
+    private String challengeName;           // ⬅️ ADD THIS
+    private String challengeType;           // ⬅️ ADD THIS
+
+    // Progress tracking
     private Integer currentProgress;
+    private Integer previousProgress;       // ⬅️ ADD THIS
     private Integer targetValue;
     private Integer progressIncrement;
     private Double progressPercentage;
-    private boolean justCompleted;
-    private Instant updatedAt;
 
+    // Status
+    private boolean justCompleted;
 
     @Override
     public String getEventType() {
@@ -35,7 +37,10 @@ public class ChallengeProgressEvent extends BaseEvent {
 
     @Override
     public boolean isValid() {
-        return isBaseValid() && challengeId != null;
+        return isBaseValid() &&
+                challengeId != null &&
+                currentProgress != null &&
+                targetValue != null;
     }
 
     @Override
@@ -47,11 +52,24 @@ public class ChallengeProgressEvent extends BaseEvent {
 
     @Override
     public double getIntensityScore() {
-        return 0;
+        return progressPercentage != null ? progressPercentage : 0.0;
     }
 
     @Override
     public boolean isStreakEligible() {
         return false;
+    }
+
+    // UI/UX Helper Methods
+    public String getProgressMessage() {
+        return String.format("Challenge '%s': %d/%d (%d%% complete)",
+                challengeName,
+                currentProgress,
+                targetValue,
+                progressPercentage.intValue());
+    }
+
+    public boolean isSignificantProgress() {
+        return progressIncrement != null && progressIncrement >= (targetValue * 0.25);
     }
 }

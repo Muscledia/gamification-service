@@ -1,8 +1,6 @@
 package com.muscledia.Gamification_service.event.publisher;
 
-import com.muscledia.Gamification_service.event.ChallengeCompletedEvent;
-import com.muscledia.Gamification_service.event.ChallengeProgressEvent;
-import com.muscledia.Gamification_service.event.ChallengeStartedEvent;
+import com.muscledia.Gamification_service.event.*;
 
 /**
  * PURPOSE: Abstract event publishing without knowing the implementation
@@ -14,4 +12,10 @@ public interface EventPublisher {
     void publishChallengeStarted(ChallengeStartedEvent event);
     void publishChallengeProgress(ChallengeProgressEvent event);
     void publishChallengeCompleted(ChallengeCompletedEvent event);
+
+    // Gamification Events
+    void publishBadgeEarned(BadgeEarnedEvent event);
+    void publishLevelUp(LevelUpEvent event);
+    void publishLeaderboardUpdated(LeaderboardUpdatedEvent event);
+    void publishStreakUpdated(StreakUpdatedEvent event);
 }

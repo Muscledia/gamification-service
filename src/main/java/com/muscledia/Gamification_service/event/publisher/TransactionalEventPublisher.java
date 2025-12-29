@@ -33,6 +33,7 @@ public class TransactionalEventPublisher implements EventPublisher {
     /**
      * Publish badge earned event (transactionally)
      */
+    @Override
     @Transactional
     public void publishBadgeEarned(BadgeEarnedEvent event) {
         validateEvent(event);
@@ -44,6 +45,7 @@ public class TransactionalEventPublisher implements EventPublisher {
     /**
      * Publish level up event (transactionally)
      */
+    @Override
     @Transactional
     public void publishLevelUp(LevelUpEvent event) {
         validateEvent(event);
@@ -66,6 +68,7 @@ public class TransactionalEventPublisher implements EventPublisher {
     /**
      * Publish leaderboard updated event (transactionally)
      */
+    @Override
     @Transactional
     public void publishLeaderboardUpdated(LeaderboardUpdatedEvent event) {
         validateEvent(event);
@@ -77,6 +80,7 @@ public class TransactionalEventPublisher implements EventPublisher {
     /**
      * Publish streak updated event (transactionally)
      */
+    @Override
     @Transactional
     public void publishStreakUpdated(StreakUpdatedEvent event) {
         validateEvent(event);

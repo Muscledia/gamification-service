@@ -27,6 +27,7 @@ public class ChallengeCompletedEvent extends BaseEvent {
     private Instant completedAt;
     private Integer finalProgress;
     private Integer targetValue;
+    private Integer timeTakenHours;
 
 
     @Override
