@@ -2,6 +2,7 @@ package com.muscledia.Gamification_service.service;
 
 import com.muscledia.Gamification_service.dto.response.LeaderboardResponse;
 import com.muscledia.Gamification_service.event.UserRegisteredEvent;
+import com.muscledia.Gamification_service.event.publisher.EventPublisher;
 import com.muscledia.Gamification_service.exception.UserProfileException;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.model.enums.StreakType;
@@ -28,6 +29,9 @@ public class UserGamificationService {
     private final LeaderboardService leaderboardService;
     private final AnalyticsService analyticsService;
     private final StreakService streakService;
+
+    private final EventPublisher eventPublisher;
+    private final LeaderboardChangeDetectionService leaderboardDetection;
 
     // ===========================================
     // EVENT PROCESSING METHODS
