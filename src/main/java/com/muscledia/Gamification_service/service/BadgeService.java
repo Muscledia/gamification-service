@@ -206,7 +206,7 @@ public class BadgeService {
     }
 
     /**
-     * Private helper method to evaluate badge criteria
+     * FIXED: Implement all criteria types to stop warnings
      */
     private boolean evaluateCriteria(Badge badge, Map<String, Object> userStats) {
         BadgeCriteriaType criteriaType = badge.getCriteriaType();
@@ -216,28 +216,46 @@ public class BadgeService {
             return false;
         }
 
-        switch (criteriaType) {
-            case WORKOUT_COUNT:
-                return checkWorkoutCount(userStats, criteriaParams);
-            case WORKOUT_STREAK:
-                return checkWorkoutStreak(userStats, criteriaParams);
-            case PERSONAL_RECORD:
-                return checkPersonalRecord(userStats, criteriaParams);
-            case POINTS_EARNED:
-                return checkPointsEarned(userStats, criteriaParams);
-            case LEVEL_REACHED:
-                return checkLevelReached(userStats, criteriaParams);
-            case WEIGHT_LIFTED_TOTAL:
-                return checkWeightLifted(userStats, criteriaParams);
-            case EXERCISE_COUNT:
-                return checkExerciseCount(userStats, criteriaParams);
-            case LOGIN_STREAK:
-                return checkLoginStreak(userStats, criteriaParams);
-            // Add more criteria evaluations as needed
-            default:
-                log.warn("Unsupported criteria type: {}", criteriaType);
-                return false;
-        }
+        return switch (criteriaType) {
+            case WORKOUT_COUNT -> checkWorkoutCount(userStats, criteriaParams);
+            case WORKOUT_STREAK -> checkWorkoutStreak(userStats, criteriaParams);
+            case PERSONAL_RECORD -> checkPersonalRecord(userStats, criteriaParams);
+            case POINTS_EARNED -> checkPointsEarned(userStats, criteriaParams);
+            case LEVEL_REACHED -> checkLevelReached(userStats, criteriaParams);
+            case WEIGHT_LIFTED_TOTAL -> checkWeightLifted(userStats, criteriaParams);
+            case EXERCISE_COUNT -> checkExerciseCount(userStats, criteriaParams);
+            case LOGIN_STREAK -> checkLoginStreak(userStats, criteriaParams);
+
+            // IMPLEMENTED: Previously unsupported ⬅️ ADDED
+            case WORKOUT_DURATION -> checkWorkoutDuration(userStats, criteriaParams);
+            case WEEKLY_WORKOUTS -> checkWeeklyWorkouts(userStats, criteriaParams);
+            case MONTHLY_WORKOUTS -> checkMonthlyWorkouts(userStats, criteriaParams);
+
+            default -> {
+                log.debug("Criteria type not implemented: {}", criteriaType);
+                yield false;
+            }
+        };
+    }
+
+// ADD THESE NEW METHODS:
+
+    private boolean checkWorkoutDuration(Map<String, Object> userStats, Map<String, Object> criteriaParams) {
+        Integer totalMinutes = (Integer) userStats.get("totalWorkoutMinutes");
+        Integer requiredMinutes = (Integer) criteriaParams.get("targetValue");
+        return totalMinutes != null && requiredMinutes != null && totalMinutes >= requiredMinutes;
+    }
+
+    private boolean checkWeeklyWorkouts(Map<String, Object> userStats, Map<String, Object> criteriaParams) {
+        Integer weeklyCount = (Integer) userStats.get("weeklyWorkouts");
+        Integer requiredCount = (Integer) criteriaParams.get("targetValue");
+        return weeklyCount != null && requiredCount != null && weeklyCount >= requiredCount;
+    }
+
+    private boolean checkMonthlyWorkouts(Map<String, Object> userStats, Map<String, Object> criteriaParams) {
+        Integer monthlyCount = (Integer) userStats.get("monthlyWorkouts");
+        Integer requiredCount = (Integer) criteriaParams.get("targetValue");
+        return monthlyCount != null && requiredCount != null && monthlyCount >= requiredCount;
     }
 
     /**
