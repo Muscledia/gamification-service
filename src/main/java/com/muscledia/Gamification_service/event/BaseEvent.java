@@ -1,71 +1,92 @@
 package com.muscledia.Gamification_service.event;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
  * Base class for all events in the gamification system.
- * Provides common fields and serialization configuration.
- * 
- * Design Decision: Using @SuperBuilder for builder pattern inheritance
- * while maintaining compatibility with abstract classes.
+ *
+ * CRITICAL: Includes events gamification-service PRODUCES and CONSUMES
  */
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
-@AllArgsConstructor
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "eventType")
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "eventType"
+)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = WorkoutCompletedEvent.class, name = "WORKOUT_COMPLETED"),
-        @JsonSubTypes.Type(value = PersonalRecordEvent.class, name = "PERSONAL_RECORD"),
-        @JsonSubTypes.Type(value = ExerciseCompletedEvent.class, name = "EXERCISE_COMPLETED"),
+        // ========== GAMIFICATION-SERVICE PRODUCES (outbound) ==========
         @JsonSubTypes.Type(value = StreakUpdatedEvent.class, name = "STREAK_UPDATED"),
         @JsonSubTypes.Type(value = BadgeEarnedEvent.class, name = "BADGE_EARNED"),
         @JsonSubTypes.Type(value = LevelUpEvent.class, name = "LEVEL_UP"),
         @JsonSubTypes.Type(value = QuestCompletedEvent.class, name = "QUEST_COMPLETED"),
-        @JsonSubTypes.Type(value = LeaderboardUpdatedEvent.class, name = "LEADERBOARD_UPDATED")
+        @JsonSubTypes.Type(value = LeaderboardUpdatedEvent.class, name = "LEADERBOARD_UPDATED"),
+        @JsonSubTypes.Type(value = ChallengeStartedEvent.class, name = "CHALLENGE_STARTED"),
+        @JsonSubTypes.Type(value = ChallengeProgressEvent.class, name = "CHALLENGE_PROGRESS"),
+        @JsonSubTypes.Type(value = ChallengeCompletedEvent.class, name = "CHALLENGE_COMPLETED"),
+
+        // ========== GAMIFICATION-SERVICE CONSUMES (inbound from workout-service) ==========
+        @JsonSubTypes.Type(value = WorkoutCompletedEvent.class, name = "WORKOUT_COMPLETED"),
+        @JsonSubTypes.Type(value = PersonalRecordEvent.class, name = "PERSONAL_RECORD"),
+        @JsonSubTypes.Type(value = ExerciseCompletedEvent.class, name = "EXERCISE_COMPLETED")
 })
 public abstract class BaseEvent {
 
-    @JsonProperty("userId")
-    private Long userId;
-    /**
-     * Unique identifier for this event instance
-     */
-    @NotBlank(message = "Event ID must not be blank")
-    @JsonProperty("eventId")
-    private String eventId;
+    @NotBlank
+    @lombok.Builder.Default
+    protected String eventId = UUID.randomUUID().toString();
 
-    /**
-     * Timestamp when the event occurred
-     */
+    @NotNull
     @JsonProperty("timestamp")
-    @JsonDeserialize(using = InstantStringDeserializer.class) // Different deserializer for ISO strings
-    private Instant timestamp;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @lombok.Builder.Default
+    protected Instant timestamp = Instant.now();
+
+    @NotNull
+    protected Long userId;
+
+    @NotBlank
+    @lombok.Builder.Default
+    protected String source = "gamification-service";
+
+    @NotBlank
+    @lombok.Builder.Default
+    protected String version = "1.0";
 
     /**
-     * Service that generated this event
+     * Constructor for common fields
      */
-    @JsonProperty("source")
-    private String source;
+    protected BaseEvent(Long userId) {
+        this.eventId = UUID.randomUUID().toString();
+        this.timestamp = Instant.now();
+        this.userId = userId;
+        this.source = "gamification-service";
+        this.version = "1.0";
+    }
 
     /**
-     * Event version for schema evolution
+     * Constructor with all fields for builder/deserialization
      */
-    @JsonProperty("version")
-    private String version = "1.0";
-
+    protected BaseEvent(String eventId, Instant timestamp, Long userId, String source, String version) {
+        this.eventId = eventId != null ? eventId : UUID.randomUUID().toString();
+        this.timestamp = timestamp != null ? timestamp : Instant.now();
+        this.userId = userId;
+        this.source = source != null ? source : "gamification-service";
+        this.version = version != null ? version : "1.0";
+    }
 
     /**
      * Get the event type for routing and processing
@@ -82,17 +103,20 @@ public abstract class BaseEvent {
      */
     public abstract BaseEvent withNewTimestamp();
 
-    // Add this helper method for intensity calculation
+    /**
+     * Helper method for intensity calculation
+     */
     public abstract double getIntensityScore();
 
-    // Add this helper method for streak eligibility
+    /**
+     * Helper method for streak eligibility
+     */
     public abstract boolean isStreakEligible();
 
     /**
      * Helper method to validate common fields
      */
     protected boolean isBaseValid() {
-        return eventId != null && !eventId.trim().isEmpty() &&
-                userId != null;
+        return eventId != null && !eventId.trim().isEmpty() && userId != null;
     }
 }
