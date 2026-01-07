@@ -15,10 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * PURPOSE: Generate personalized challenges based on user progression
@@ -150,6 +147,14 @@ public class ChallengeProgressionService {
         Instant startDate = Instant.now();
         Instant endDate = calculateEndDate(startDate, template.getType());
 
+        // FIX: Copy metadata from template to challenge
+        Map<String, Object> personalizationData = new HashMap<>();
+        if (template.getMetadata() != null && !template.getMetadata().isEmpty()) {
+            personalizationData.putAll(template.getMetadata());
+            log.debug("Copied {} metadata fields from template {}",
+                    personalizationData.size(), template.getId());
+        }
+
         return Challenge.builder()
                 .templateId(template.getId())
                 .name(template.getName())
@@ -164,6 +169,7 @@ public class ChallengeProgressionService {
                 .userJourneyTags(new HashSet<>(template.getUserJourneyTags()))
                 .journeyPhase(journey.getCurrentPhase())
                 .personalizedDifficultyMultiplier(difficultyMultiplier)
+                .personalizationData(personalizationData)
                 .startDate(startDate)
                 .endDate(endDate)
                 .active(true)
