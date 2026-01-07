@@ -1,5 +1,7 @@
 package com.muscledia.Gamification_service.service;
 
+import com.muscledia.Gamification_service.event.BadgeEarnedEvent;
+import com.muscledia.Gamification_service.event.publisher.EventPublisher;
 import com.muscledia.Gamification_service.model.Badge;
 import com.muscledia.Gamification_service.model.UserBadge;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
@@ -25,6 +27,7 @@ public class BadgeService {
 
     private final BadgeRepository badgeRepository;
     private final UserGamificationProfileRepository userProfileRepository;
+    private final EventPublisher eventPublisher;
 
     /**
      * Create a new badge
@@ -70,20 +73,18 @@ public class BadgeService {
 
     /**
      * Award a badge to a user
+     * FIXED: Publishes BadgeEarnedEvent with UUID
      */
     @Transactional
     public UserGamificationProfile awardBadge(Long userId, String badgeId) {
         log.info("Awarding badge {} to user {}", badgeId, userId);
 
-        // Get user profile
         UserGamificationProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User profile not found: " + userId));
 
-        // Get badge
         Badge badge = badgeRepository.findById(badgeId)
                 .orElseThrow(() -> new IllegalArgumentException("Badge not found: " + badgeId));
 
-        // Check if user already has this badge
         boolean alreadyHasBadge = userProfile.getEarnedBadges().stream()
                 .anyMatch(ub -> ub.getBadgeId().equals(badgeId));
 
@@ -92,16 +93,22 @@ public class BadgeService {
             return userProfile;
         }
 
-        // Create user badge
+        // Create user badge WITH full details
         UserBadge userBadge = new UserBadge();
         userBadge.setBadgeId(badgeId);
         userBadge.setEarnedAt(Instant.now());
+        userBadge.setBadgeName(badge.getName());           // ← ADD THIS
+        userBadge.setDescription(badge.getDescription());   // ← ADD THIS
+        userBadge.setCategory(badge.getBadgeType().toString()); // ← ADD THIS
+        userBadge.setPointsAwarded(badge.getPointsAwarded()); // ← ADD THIS
 
-        // Add badge to user profile
         userProfile.getEarnedBadges().add(userBadge);
 
-        // Award points
-        userProfile.setPoints(userProfile.getPoints() + badge.getPointsAwarded());
+        // Award points if badge has them
+        Integer badgePoints = badge.getPointsAwarded();
+        if (badgePoints > 0) {  // ← FIXED
+            userProfile.setPoints(userProfile.getPoints() + badgePoints);
+        }
 
         // Check for level up
         int newLevel = calculateLevel(userProfile.getPoints());
@@ -112,8 +119,37 @@ public class BadgeService {
         }
 
         UserGamificationProfile savedProfile = userProfileRepository.save(userProfile);
+
+        // ✅ PUBLISH EVENT WITH UUID
+        publishBadgeEarnedEvent(userId, badge);
+
         log.info("Badge {} awarded successfully to user {}", badgeId, userId);
         return savedProfile;
+    }
+
+    /**
+     * Publish BadgeEarnedEvent WITH UUID
+     */
+    private void publishBadgeEarnedEvent(Long userId, Badge badge) {
+        try {
+            String eventId = UUID.randomUUID().toString();
+
+            BadgeEarnedEvent event = BadgeEarnedEvent.builder()
+                    .eventId(eventId)  // ← SET UUID
+                    .userId(userId)
+                    .badgeId(badge.getBadgeId())
+                    .badgeName(badge.getName())
+                    .badgeType(badge.getBadgeType().toString())
+                    .pointsAwarded(badge.getPointsAwarded())
+                    .timestamp(Instant.now())
+                    .build();
+
+            eventPublisher.publishBadgeEarned(event);
+            log.info("Published BadgeEarnedEvent: {} for user {}", eventId, userId);
+
+        } catch (Exception e) {
+            log.error("Failed to publish BadgeEarnedEvent: {}", e.getMessage());
+        }
     }
 
     /**
@@ -124,6 +160,45 @@ public class BadgeService {
                 .orElseThrow(() -> new IllegalArgumentException("Badge not found: " + badgeId));
 
         return evaluateCriteria(badge, userStats);
+    }
+
+    /**
+     * Check and award PR badges based on user's totalPersonalRecords
+     */
+    @Transactional
+    public void checkAndAwardPersonalRecordBadges(Long userId) {
+        log.info("Checking PR badges for user {}", userId);
+
+        // Get user profile to check PR count
+        UserGamificationProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User profile not found: " + userId));
+
+        int totalPRs = profile.getTotalPersonalRecords() != null
+                ? profile.getTotalPersonalRecords()
+                : 0;
+
+        log.debug("User {} has {} total PRs", userId, totalPRs);
+
+        // Get all PR badges
+        List<Badge> prBadges = badgeRepository.findByCriteriaType(BadgeCriteriaType.PERSONAL_RECORD);
+
+        for (Badge badge : prBadges) {
+            // Check if already earned
+            boolean alreadyEarned = profile.getEarnedBadges().stream()
+                    .anyMatch(ub -> ub.getBadgeId().equals(badge.getBadgeId()));
+
+            if (alreadyEarned) {
+                continue;
+            }
+
+            // Check if criteria met
+            Integer targetValue = (Integer) badge.getCriteriaParams().get("targetValue");
+            if (targetValue != null && totalPRs >= targetValue) {
+                awardBadge(userId, badge.getBadgeId());
+                log.info("🏆 Awarded PR badge '{}' to user {} ({} PRs)",
+                        badge.getName(), userId, totalPRs);
+            }
+        }
     }
 
     /**
