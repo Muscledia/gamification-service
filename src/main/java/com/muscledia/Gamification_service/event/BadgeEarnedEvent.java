@@ -126,7 +126,7 @@ public class BadgeEarnedEvent extends BaseEvent {
             @JsonProperty("newTotalPoints") Integer newTotalPoints,
             @JsonProperty("achievementData") Map<String, Object> achievementData) {
 
-        super(userId, eventId, timestamp, source, version);
+        super(eventId, timestamp, userId, source, version);  // FIXED: Correct order!
         this.badgeId = badgeId;
         this.badgeName = badgeName;
         this.badgeType = badgeType;
