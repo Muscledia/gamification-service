@@ -3,11 +3,14 @@ package com.muscledia.Gamification_service.controller;
 import com.muscledia.Gamification_service.dto.request.UserStatsRequest;
 import com.muscledia.Gamification_service.dto.response.ApiResponse;
 import com.muscledia.Gamification_service.model.Badge;
+import com.muscledia.Gamification_service.model.UserBadge;
 import com.muscledia.Gamification_service.model.UserGamificationProfile;
 import com.muscledia.Gamification_service.model.enums.BadgeType;
 import com.muscledia.Gamification_service.model.enums.BadgeCriteriaType;
 import com.muscledia.Gamification_service.service.BadgeService;
+import com.muscledia.Gamification_service.service.UserGamificationService; // ← ADD THIS
 import com.muscledia.Gamification_service.utils.AuthenticationService;
+import lombok.RequiredArgsConstructor; // ← ADD THIS
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -27,10 +30,12 @@ import java.util.Map;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Badge Controller - Now with working Swagger documentation
+ * Badge Controller - Following Separation of Concerns
+ * Presentation Layer: Delegates business logic to service layer
  */
 @RestController
 @RequestMapping("/api/badges")
+@RequiredArgsConstructor // ← ADD THIS
 @Slf4j
 @Validated
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -39,13 +44,8 @@ import org.springframework.validation.annotation.Validated;
 public class BadgeController {
 
     private final BadgeService badgeService;
+    private final UserGamificationService userGamificationService;
 
-
-    public BadgeController(BadgeService badgeService) {
-        this.badgeService = badgeService;
-        log.info("BadgeController SUCCESSFULLY LOADED!");
-        log.info("Base path: /api/badges");
-    }
 
     @GetMapping("/health")
     public ResponseEntity<String> health() {
@@ -53,9 +53,6 @@ public class BadgeController {
         return ResponseEntity.ok("Badge Controller is loaded!");
     }
 
-    /**
-     * Create a new badge
-     */
     @PostMapping
     @Operation(summary = "Create a new badge", description = "Creates a new badge with specified criteria and rewards. Badge names must be unique.")
     @ApiResponses(value = {
@@ -94,11 +91,10 @@ public class BadgeController {
             @Parameter(description = "Filter by badge type") @RequestParam(required = false) BadgeType badgeType,
             @Parameter(description = "Filter by criteria type") @RequestParam(required = false) BadgeCriteriaType criteriaType) {
 
-        log.info("Getting all badges with filters - badgeType: {}, criteriaType: {}", null, null); // Removed filters
-                                                                                                   // for MVP
+        log.info("Getting all badges with filters - badgeType: {}, criteriaType: {}", badgeType, criteriaType);
 
         try {
-            List<Badge> badges = badgeService.getAllBadges(null, null); // Removed filters for MVP
+            List<Badge> badges = badgeService.getAllBadges(null, null);
             return ResponseEntity.ok(ApiResponse.success(badges));
         } catch (Exception e) {
             log.error("Error getting badges", e);
@@ -181,7 +177,6 @@ public class BadgeController {
         Long userId = AuthenticationService.getCurrentUserId();
         log.info("Getting eligible badges for current user {}", userId);
 
-        // Override any userId in request with current user
         request.setUserId(userId);
 
         try {
@@ -196,15 +191,19 @@ public class BadgeController {
 
     /**
      * Get all badges earned by current user
+     * FIXED: Uses service layer following separation of concerns
      */
     @GetMapping("/my-badges")
-    public ResponseEntity<ApiResponse<List<Badge>>> getMyBadges() {
+    public ResponseEntity<ApiResponse<List<UserBadge>>> getMyBadges() {
         Long userId = AuthenticationService.getCurrentUserId();
         log.info("Getting badges for current user {}", userId);
 
         try {
-            List<Badge> userBadges = badgeService.getUserBadges(userId);
-            return ResponseEntity.ok(ApiResponse.success(userBadges));
+            // Use service layer instead of direct repository access
+            UserGamificationProfile profile = userGamificationService.getOrCreateProfile(userId);
+            List<UserBadge> earnedBadges = profile.getEarnedBadges();
+
+            return ResponseEntity.ok(ApiResponse.success(earnedBadges));
         } catch (Exception e) {
             log.error("Error getting user badges", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -212,12 +211,8 @@ public class BadgeController {
         }
     }
 
-    /**
-     * Get badge statistics
-     */
     @GetMapping("/statistics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getBadgeStatistics() {
-
         log.info("Getting badge statistics");
 
         try {
@@ -230,14 +225,8 @@ public class BadgeController {
         }
     }
 
-
-
-    /**
-     * Delete a badge
-     */
     @DeleteMapping("/{badgeId}")
     public ResponseEntity<ApiResponse<Void>> deleteBadge(@PathVariable String badgeId) {
-
         log.info("Deleting badge {}", badgeId);
 
         try {
@@ -252,5 +241,4 @@ public class BadgeController {
                     .body(ApiResponse.error("Failed to delete badge"));
         }
     }
-
 }
